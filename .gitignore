@@ -1,0 +1,17 @@
+### IntelliJ IDEA ###
+.idea
+*.iws
+.gradle
+*.iml
+*.ipr
+*/target/*
+/bin/
+/.cache-main
+/.classpath
+/.project
+/target
+/.settings
+out
+
+/.gradle/
+/build/
