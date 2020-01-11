@@ -1,5 +1,8 @@
 package boids;
 
+import boids.controller.MainController;
+import boids.model.Model;
+import boids.view.View;
 import javafx.application.Application;
 import javafx.stage.Stage;
 

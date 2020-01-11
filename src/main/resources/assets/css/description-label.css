@@ -1,0 +1,6 @@
+.label {
+    -fx-min-height: 20px;
+    -fx-text-fill: #292c2f;
+    -fx-padding: 0 0 0 5;
+    -fx-text-alignment: left;
+}

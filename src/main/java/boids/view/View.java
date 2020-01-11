@@ -1,5 +1,6 @@
-package boids;
+package boids.view;
 
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -11,10 +12,10 @@ import java.io.IOException;
 
 public class View {
 
-    public static final int WINDOW_WIDTH = 1660;
-    public static final int WINDOW_HEIGHT = 840;
-
-    private static Pane mainPane;
+    public static final int CANVAS_HEIGHT = 800;
+    public static final int CANVAS_WIDTH = 1200;
+    private static final int WINDOW_WIDTH = 1660;
+    private static final int WINDOW_HEIGHT = 840;
     private FXMLLoader loader;
 
     public View(Stage primaryStage) {
@@ -24,11 +25,11 @@ public class View {
         try {
             pane = loader.load();
         } catch (IOException e) {
-            e.printStackTrace();            //TODO handle this exception
+            e.printStackTrace();
+            Platform.exit();
         }
 
-        mainPane = pane;
-        Scene scene = new Scene(mainPane, WINDOW_WIDTH, WINDOW_HEIGHT);
+        Scene scene = new Scene(pane, WINDOW_WIDTH, WINDOW_HEIGHT);
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -36,14 +37,13 @@ public class View {
     private void setDefaultStageSettings(Stage primaryStage) {
         primaryStage.setResizable(false);
         primaryStage.sizeToScene();
-        //primaryStage.getIcons().add(new Image(this.getClass().getResourceAsStream("/assets/images/DrawieIcon.bmp"))); TODO
+        primaryStage.getIcons().add(new Image(this.getClass().getResourceAsStream("/assets/images/boidsLogo.bmp")));
         primaryStage.setTitle("boids");
         primaryStage.centerOnScreen();
     }
 
-
     public void setImageView(ImageView imageView, String image) {
-        imageView.setImage(new Image(this.getClass().getResourceAsStream("/main/resources/images/" + image)));
+        imageView.setImage(new Image(this.getClass().getResourceAsStream("/assets/images/" + image)));
     }
 
     public FXMLLoader getLoader() {

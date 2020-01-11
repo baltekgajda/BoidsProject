@@ -1,0 +1,8 @@
+.label {
+    -fx-min-height: 35px;
+    -fx-background-color: #34363a;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 0px;
+    -fx-background-radius: 3px;
+    -fx-text-alignment: center
+}

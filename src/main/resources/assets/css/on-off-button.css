@@ -1,0 +1,10 @@
+.toggle-button {
+    -fx-min-height: 35px;
+    -fx-background-color: #34363a;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 0px;
+}
+
+.toggle-button:selected {
+    -fx-background-color: #131516;
+}

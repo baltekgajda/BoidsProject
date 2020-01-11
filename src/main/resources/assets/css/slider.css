@@ -1,0 +1,22 @@
+.slider {
+    -fx-pref-height: 35px;
+}
+
+.slider .track {
+    -fx-pref-height: 35px;
+    -fx-alignment: center;
+    -fx-background-color: #34363a;
+}
+
+.slider .thumb {
+    -fx-pref-width: 7px;
+    -fx-pref-height: 36px;
+    -fx-alignment: center;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 0;
+    -fx-border-color: #b2b2b2;
+}
+
+.slider:hover .track {
+    -fx-background-color: #131516;
+}
