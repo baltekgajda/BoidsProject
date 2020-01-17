@@ -1,5 +1,8 @@
 package boids.model;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
 import boids.view.View;
 import javafx.util.Pair;
 
@@ -29,8 +32,13 @@ public class Model {
     private BordersAvoidance avoidBordersFunction;
     private boolean isTurningBackOnBordersEnabled;
     private int boidsCount;
+    private ArrayList<ActorRef> boidActorRefs;
+    private ActorSystem boidsActorSystem;
+    private ActorRef modelActorRef;
 
     public Model() {
+        boidsActorSystem = ActorSystem.create("boids-simulation");
+//        modelActorRef = boidsActorSystem.actorOf(Props.create(Model.class), "modelActor");
         boids = new ArrayList<>();
         obstacles = new ArrayList<>();
         voxels = new HashMap<>();
@@ -104,15 +112,18 @@ public class Model {
     }
 
     public void addBoid(Vector2d pos, boolean isOpponent) {
+        ActorRef boidActorRef;
         boidsCount++;
         Boid boid;
         if (pos == null) {
+//            boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class), "Boid-" + boidsCount);
             boid = new Boid();
         } else {
+//            boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class, pos, isOpponent), "Boid-" + boidsCount);
             boid = new Boid(pos, isOpponent);
         }
 
-        boids.add(boid);
+//        boidActorRefs.add(boidActorRef);
         addToVoxel(boid);
     }
 
@@ -188,6 +199,7 @@ public class Model {
             if (voxelContent == null) continue;
             for (Boid other : voxelContent) {
                 double dist = boid.getDistance(other);
+
                 if (dist > 0 && dist < Boid.getNeighbourhoodRadius()) {
                     neighbours.add(other);
                 }

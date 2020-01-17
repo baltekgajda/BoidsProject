@@ -19,5 +19,6 @@ public class Start extends Application {
         MainController mainController = view.getLoader().getController();
         mainController.setView(view);
         mainController.setModel(model);
+
     }
 }

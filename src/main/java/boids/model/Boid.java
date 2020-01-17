@@ -1,5 +1,7 @@
 package boids.model;
 
+import akka.actor.AbstractActor;
+import akka.actor.Props;
 import boids.view.View;
 import boids.view.shapes.Shape;
 import javafx.scene.paint.Color;
@@ -21,6 +23,11 @@ public class Boid {
     private Vector2d velocity;
     private Vector2d forces;
     private boolean isOpponent;
+
+//    @Override
+//    public Receive createReceive() {
+//        return null;
+//    }
 
     Boid() {
         this.position = getRandomPosition();
@@ -304,3 +311,9 @@ public class Boid {
         return "position: " + this.position.toString() + ", velocity: " + this.velocity.toString();
     }
 }
+
+//class BoidActor extends Boid {
+//    BoidActor(){
+//
+//    }
+//}
