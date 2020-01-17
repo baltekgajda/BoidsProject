@@ -11,11 +11,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-@FunctionalInterface
-interface BordersAvoidance {
-    void avoidBorders(Boid boid);
-}
-
 public class Model {
 
     public static double obstacleRadius = 15.0;
@@ -29,8 +24,8 @@ public class Model {
     private ArrayList<Boid> boids;
     private ArrayList<Obstacle> obstacles;
     private HashMap<Pair<Integer, Integer>, LinkedList<Boid>> voxels;
-    private BordersAvoidance avoidBordersFunction;
     private boolean isTurningBackOnBordersEnabled;
+    private BordersAvoidanceFunction bordersAvoidanceFunction;
     private int boidsCount;
     private ArrayList<ActorRef> boidActorRefs;
     private ActorSystem boidsActorSystem;
@@ -56,42 +51,12 @@ public class Model {
         return voxelSize;
     }
 
-    private static void foldOnBorders(Boid boid) {
-        Vector2d pos = boid.getPosition();
-        if (pos.getX() < 0) {
-            pos.x += View.CANVAS_WIDTH;
-        }
-
-        if (pos.getX() > View.CANVAS_WIDTH) {
-            pos.x -= View.CANVAS_WIDTH;
-        }
-
-        if (pos.getY() < 0) {
-            pos.y += View.CANVAS_HEIGHT;
-        }
-
-        if (pos.getY() > View.CANVAS_HEIGHT) {
-            pos.y -= View.CANVAS_HEIGHT;
-        }
-
-        boid.setPosition(pos);
-    }
-
-    private static void turnBackOnBorders(Boid boid) {
-        boid.turnBackOnBorders();
-    }
 
     //function where all rules are added to a boid
     public void findNewBoidsPositions() {
         for (Boid boid : boids) {
             LinkedList<Boid> neighbours = getBoidNeighbours(boid);
-            boid.separate(neighbours, separationWeight);
-            boid.provideCohesion(neighbours, cohesionWeight);
-            boid.align(neighbours, alignmentWeight);
-            boid.avoidOpponents(neighbours, opponentWeight);
-            boid.avoidObstacles(obstacles, obstacleRadius, obstacleWeight);
-            boid.moveToNewPosition();
-            avoidBordersFunction.avoidBorders(boid);
+            boid.applyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction);
         }
 
         resetVoxels();
@@ -124,6 +89,7 @@ public class Model {
         }
 
 //        boidActorRefs.add(boidActorRef);
+        boids.add(boid);
         addToVoxel(boid);
     }
 
@@ -210,13 +176,13 @@ public class Model {
     }
 
     public void setAvoidBordersFunctionToFolding() {
-        this.avoidBordersFunction = Model::foldOnBorders;
         isTurningBackOnBordersEnabled = false;
+        bordersAvoidanceFunction = BordersAvoidanceFunction.FOLD_ON_BORDERS;
     }
 
     public void setAvoidBordersFunctionToTurningBack() {
-        this.avoidBordersFunction = Model::turnBackOnBorders;
         isTurningBackOnBordersEnabled = true;
+        bordersAvoidanceFunction = BordersAvoidanceFunction.TURN_BACK_ON_BORDERS;
     }
 }
 

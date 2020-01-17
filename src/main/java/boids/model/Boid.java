@@ -96,6 +96,17 @@ public class Boid {
         return angle;
     }
 
+    void applyAllRules(LinkedList<Boid> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+        this.separate(neighbours, separationWeight);
+        this.provideCohesion(neighbours, cohesionWeight);
+        this.align(neighbours, alignmentWeight);
+        this.avoidOpponents(neighbours, opponentWeight);
+        this.avoidObstacles(obstacles, obstacleRadius, obstacleWeight);
+        this.moveToNewPosition();
+        this.avoidBorders(bordersAvoidanceFunction);
+//        System.out.println(bordersAvoidanceFunction.toString());
+    }
+
     void moveToNewPosition() {
         this.velocity.add(forces);
         limitVelocity();
@@ -209,6 +220,70 @@ public class Boid {
         applyForce(steerForce);
     }
 
+
+    //function that provides obstacle avoidance
+    void avoidObstacles(ArrayList<Obstacle> obstacles, double edgeDistance, double behaviourWeight) {
+        Vector2d avoidVector = new Vector2d();
+        Vector2d diff = new Vector2d();
+        double length;
+        for (Obstacle o : obstacles) {
+            diff.sub(this.position, o.getPosition());
+            length = diff.length();
+            if (length > o.getRadius() + edgeDistance) {
+                continue;
+            }
+            diff.scale(1 / length);
+            avoidVector.add(diff);
+        }
+
+        if (avoidVector.equals(new Vector2d())) {
+            return;
+        }
+
+        avoidVector.normalize();
+        avoidVector.scale(Boid.maxSpeed);
+        Vector2d steerForce = calculateSteerForce(avoidVector, velocity);
+        steerForce.scale(behaviourWeight);
+        applyForce(steerForce);
+    }
+
+    public void avoidBorders(BordersAvoidanceFunction bordersAvoidanceFunction) {
+        switch (bordersAvoidanceFunction) {
+            case FOLD_ON_BORDERS: {
+                System.out.println("folding");
+                foldOnBorders();
+                break;
+            }
+            case TURN_BACK_ON_BORDERS: {
+                System.out.println("turning");
+                turnBackOnBorders();
+                break;
+            }
+        }
+    }
+
+    private void foldOnBorders()
+    {
+        Vector2d pos = getPosition();
+        if (pos.getX() < 0) {
+            pos.x += View.CANVAS_WIDTH;
+        }
+
+        if (pos.getX() > View.CANVAS_WIDTH) {
+            pos.x -= View.CANVAS_WIDTH;
+        }
+
+        if (pos.getY() < 0) {
+            pos.y += View.CANVAS_HEIGHT;
+        }
+
+        if (pos.getY() > View.CANVAS_HEIGHT) {
+            pos.y -= View.CANVAS_HEIGHT;
+        }
+
+        setPosition(pos);
+    }
+
     //function that provides turning back on borders
     void turnBackOnBorders() {
         Vector2d avoidVector, avoidVectorX, avoidVectorY;
@@ -238,32 +313,6 @@ public class Boid {
         avoidVector.scale(Boid.maxSpeed);
         Vector2d steerForce = calculateSteerForce(avoidVector, velocity);
         steerForce.scale(Model.bordersWeight);
-        applyForce(steerForce);
-    }
-
-    //function that provides obstacle avoidance
-    void avoidObstacles(ArrayList<Obstacle> obstacles, double edgeDistance, double behaviourWeight) {
-        Vector2d avoidVector = new Vector2d();
-        Vector2d diff = new Vector2d();
-        double length;
-        for (Obstacle o : obstacles) {
-            diff.sub(this.position, o.getPosition());
-            length = diff.length();
-            if (length > o.getRadius() + edgeDistance) {
-                continue;
-            }
-            diff.scale(1 / length);
-            avoidVector.add(diff);
-        }
-
-        if (avoidVector.equals(new Vector2d())) {
-            return;
-        }
-
-        avoidVector.normalize();
-        avoidVector.scale(Boid.maxSpeed);
-        Vector2d steerForce = calculateSteerForce(avoidVector, velocity);
-        steerForce.scale(behaviourWeight);
         applyForce(steerForce);
     }
 
@@ -310,6 +359,8 @@ public class Boid {
     public String toString() {
         return "position: " + this.position.toString() + ", velocity: " + this.velocity.toString();
     }
+
+
 }
 
 //class BoidActor extends Boid {
