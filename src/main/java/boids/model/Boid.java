@@ -1,6 +1,7 @@
 package boids.model;
 
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import boids.model.enums.BoidMethod;
 import boids.model.enums.BordersAvoidanceFunction;
@@ -15,6 +16,11 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Random;
 
+import scala.concurrent.Future;
+//import akka.pattern.
+import static akka.pattern.Patterns.ask;
+import static akka.pattern.Patterns.pipe;
+
 public class Boid extends AbstractActor {
 
     private final static double EDGE_RADIUS = 30.0;        //distance to avoid borders
@@ -22,12 +28,11 @@ public class Boid extends AbstractActor {
     public static double maxSpeed = 3.0;
     public static double maxForce = 0.1;
 
-
     private Vector2d position;
     private Vector2d velocity;
     private Vector2d forces;
     private boolean isOpponent;
-
+    ActorRef target;
 //    @Override
 //    public Receive createReceive() {
 //        return null;
@@ -35,15 +40,20 @@ public class Boid extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return new ReceiveBuilder()
-                .match(MessageApplyAllRules.class, mes -> mes.toString())
-                .build();
-//        return receiveBuilder()
-//                .match(Double.class, d -> {
-//                    getSender().tell(d.isNaN() ? 0 : d, self());
-//                    selectAction();
+//        return new ReceiveBuilder()
+//                .match(MessageApplyAllRules.class, mes -> mes.toString())
 //
-//                }).build();
+//                .build();
+        return receiveBuilder()
+                .match(Double.class, d -> {
+//                    CompletableFuture<Object> fut =
+//                            (CompletableFuture<Object>) ask(target, "some message", 200);
+                    Future<Object> fut = ask(target, "some message", 200).toCompletableFuture();
+
+                    // the pipe pattern
+                    pipe(fut, getContext().dispatcher()).to(getSender());
+
+                }).build();
     }
 
 //    private Object selectAction(BoidMethod boidMethod, ) {
