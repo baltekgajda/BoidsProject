@@ -1,6 +1,7 @@
 package boids.model.messages;
 
 import boids.model.Boid;
+import boids.model.BoidInfo;
 import boids.model.Obstacle;
 import boids.model.enums.BordersAvoidanceFunction;
 
@@ -8,7 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class MessageApplyAllRules {
-    LinkedList<Boid> neighbours;
+    LinkedList<BoidInfo> neighbours;
     ArrayList<Obstacle> obstacles;
     double separationWeight;
     double cohesionWeight;
@@ -18,7 +19,7 @@ public class MessageApplyAllRules {
     double obstacleWeight;
     BordersAvoidanceFunction bordersAvoidanceFunction;
 
-    public MessageApplyAllRules(LinkedList<Boid> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+    public MessageApplyAllRules(LinkedList<BoidInfo> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
         this.neighbours = neighbours;
         this.obstacles = obstacles;
         this.separationWeight = separationWeight;

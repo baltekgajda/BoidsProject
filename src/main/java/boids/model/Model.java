@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class Model {
-
-
     public static double obstacleRadius = 15.0;
     public static double separationWeight = 2.0;
     public static double cohesionWeight = 1.0;
@@ -41,9 +39,10 @@ public class Model {
     public static double obstacleWeight = 2.5;
     private static double voxelSize = setVoxelSize();
     private static double neighbourhoodRadius = 30.0;
+
 //    private ArrayList<Boid> boids;
     private ArrayList<Obstacle> obstacles;
-    private HashMap<Pair<Integer, Integer>, LinkedList<Boid>> voxels;
+    private HashMap<Pair<Integer, Integer>, LinkedList<ActorRef>> voxels;
     private HashMap<ActorRef, BoidInfo> boidInfos;
     private boolean isTurningBackOnBordersEnabled;
     private BordersAvoidanceFunction bordersAvoidanceFunction;
@@ -129,7 +128,7 @@ public class Model {
     public void findNewBoidsPositions() {
         askBoidsForPosition();
         for (ActorRef boidRef : boidActorRefs) {
-            LinkedList<Boid> neighbours = getBoidNeighbours(boidRef);
+            LinkedList<BoidInfo> neighbours = getBoidNeighbours(boidRef);
             modelActorRef.tell(new MessageApplyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction), modelActorRef);
 
 //            boid.applyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction);
@@ -138,9 +137,17 @@ public class Model {
         resetVoxels();
     }
 
-    public ArrayList<Boid> getBoids() {
-        return boids;
+    public BoidInfo getBoidInfo(ActorRef actorRef){
+        return boidInfos.get(actorRef);
     }
+
+    public HashMap<ActorRef, BoidInfo> getBoidInfos() {
+        return boidInfos;
+    }
+
+    //    public ArrayList<Boid> getBoids() {
+//        return boids;
+//    }
 
     public ArrayList<Obstacle> getObstacles() {
         return obstacles;
@@ -184,11 +191,11 @@ public class Model {
     }
 
 //    private Pair<Integer, Integer> getVoxelKey(Boid boid) {
-    private Pair<Integer, Integer> getVoxelKey(ActorRef boidRef) {
+    private Pair<Integer, Integer> getVoxelKey(ActorRef actorRef) {
 //        Future<Object> future = ask(boidRef,
 //                MessageAskForBoidData.class, 100);
 //        modelActorRef.a
-        Vector2d pos = boidInfos.get(boidRef).getPosition();
+        Vector2d pos = boidInfos.get(actorRef).getPosition();
         int x = (int) (pos.getX() / voxelSize);
         int y = (int) (pos.getY() / voxelSize);
 
@@ -207,7 +214,7 @@ public class Model {
 
     private void resetVoxels() {
         clearVoxels();
-        for (Boid b : boids) {
+        for (ActorRef b : boidActorRefs) {
             addToVoxel(b);
         }
     }
@@ -222,7 +229,7 @@ public class Model {
 
     public void removeBoids() {
         boidsCount = 0;
-        boids = new ArrayList<>();
+        boidInfos = new HashMap<>();
         clearVoxels();
     }
 
@@ -234,21 +241,23 @@ public class Model {
         return boidsCount;
     }
 
-    private LinkedList<Boid> getBoidNeighbours(Boid boid) {
-        LinkedList<Boid> neighbours = new LinkedList<>();
-        Pair<Integer, Integer> key = getVoxelKey(boid);
+    private LinkedList<BoidInfo> getBoidNeighbours(ActorRef actorRef) {
+        LinkedList<BoidInfo> neighbours = new LinkedList<>();
+        Pair<Integer, Integer> key = getVoxelKey(actorRef);
         int x = key.getKey();
         int y = key.getValue();
         int[] coordsX = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
         int[] coordsY = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
         for (int i = 0; i < 9; i++) {
-            LinkedList<Boid> voxelContent = voxels.get(new Pair<>(x + coordsX[i], y + coordsY[i]));
+            LinkedList<ActorRef> voxelContent = voxels.get(new Pair<>(x + coordsX[i], y + coordsY[i]));
             if (voxelContent == null) continue;
-            for (Boid other : voxelContent) {
-                double dist = boid.getDistance(other);
+            for (ActorRef otherRef : voxelContent) {
+                BoidInfo checkedBotInfo = boidInfos.get(key);
+                BoidInfo otherBoidInfo = boidInfos.get(otherRef);
+                double dist = checkedBotInfo.getDistance(otherBoidInfo);
 
                 if (dist > 0 && dist < neighbourhoodRadius) {
-                    neighbours.add(other);
+                    neighbours.add(otherBoidInfo);
                 }
             }
         }

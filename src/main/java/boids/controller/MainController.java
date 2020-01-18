@@ -1,6 +1,7 @@
 package boids.controller;
 
 import boids.model.Boid;
+import boids.model.BoidInfo;
 import boids.model.Model;
 import boids.model.Obstacle;
 import boids.view.View;
@@ -370,7 +371,7 @@ public class MainController {
 
     private void drawBoids(GraphicsContext gc) {
         setBoidsCount();
-        for (Boid boid : model.getBoids()) {
+        for (BoidInfo boidInfo : model.getBoids()) {
             shape.drawShape(gc, boid.getPosition(), boid.getAngle(), boid.getColor());
             if (enableNeighbourhoodRadiusButton.isSelected()) {
                 shape.drawNeighbourhoodRadius(gc, boid.getPosition());
