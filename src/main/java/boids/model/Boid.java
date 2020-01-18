@@ -1,9 +1,13 @@
 package boids.model;
 
 import akka.actor.AbstractActor;
-import akka.actor.Props;
+import akka.japi.pf.ReceiveBuilder;
+import boids.model.enums.BoidMethod;
+import boids.model.enums.BordersAvoidanceFunction;
+import boids.model.messages.MessageApplyAllRules;
 import boids.view.View;
 import boids.view.shapes.Shape;
+import com.typesafe.config.ConfigException;
 import javafx.scene.paint.Color;
 
 import javax.vecmath.Vector2d;
@@ -11,13 +15,13 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Random;
 
-public class Boid {
+public class Boid extends AbstractActor {
 
     private final static double EDGE_RADIUS = 30.0;        //distance to avoid borders
     public static double separationRadius = 10.0;
     public static double maxSpeed = 3.0;
     public static double maxForce = 0.1;
-    private static double neighbourhoodRadius = 30.0;
+
 
     private Vector2d position;
     private Vector2d velocity;
@@ -27,6 +31,27 @@ public class Boid {
 //    @Override
 //    public Receive createReceive() {
 //        return null;
+//    }
+
+    @Override
+    public Receive createReceive() {
+        return new ReceiveBuilder()
+                .match(MessageApplyAllRules.class, mes -> mes.toString())
+                .build();
+//        return receiveBuilder()
+//                .match(Double.class, d -> {
+//                    getSender().tell(d.isNaN() ? 0 : d, self());
+//                    selectAction();
+//
+//                }).build();
+    }
+
+//    private Object selectAction(BoidMethod boidMethod, ) {
+//        switch (boidMethod)
+//        {
+//            case APPLY_ALL_RULES:
+//                applyAllRules();
+//        }
 //    }
 
     Boid() {
@@ -41,15 +66,6 @@ public class Boid {
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
         this.isOpponent = isOpponent;
-    }
-
-    public static double getNeighbourhoodRadius() {
-        return neighbourhoodRadius;
-    }
-
-    public static void setNeighbourhoodRadius(double radius) {
-        neighbourhoodRadius = radius;
-        Model.setVoxelSize();
     }
 
     private Vector2d getRandomPosition() {
@@ -262,8 +278,7 @@ public class Boid {
         }
     }
 
-    private void foldOnBorders()
-    {
+    private void foldOnBorders() {
         Vector2d pos = getPosition();
         if (pos.getX() < 0) {
             pos.x += View.CANVAS_WIDTH;

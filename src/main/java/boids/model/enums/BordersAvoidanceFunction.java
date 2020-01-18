@@ -1,4 +1,4 @@
-package boids.model;
+package boids.model.enums;
 
 public enum BordersAvoidanceFunction {
     FOLD_ON_BORDERS,
