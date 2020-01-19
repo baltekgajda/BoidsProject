@@ -1,5 +1,6 @@
 package boids.controller;
 
+import akka.actor.ActorRef;
 import boids.model.Boid;
 import boids.model.BoidInfo;
 import boids.model.Model;
@@ -269,28 +270,29 @@ public class MainController {
             double value = neighbourhoodRadiusSlider.getValue();
             String formattedValue = df.format(value);
             neighbourhoodRadiusSliderInfo.setText(formattedValue);
-            Boid.setNeighbourhoodRadius(Double.parseDouble(formattedValue));
+
+            Model.neighbourhoodRadius = Double.parseDouble(formattedValue);
         });
 
         separationRadiusSlider.valueProperty().addListener(arg -> {
             double value = separationRadiusSlider.getValue();
             String formattedValue = df.format(value);
             separationRadiusSliderInfo.setText(formattedValue);
-            Boid.separationRadius = Double.parseDouble(formattedValue);
+            Model.separationRadius = Double.parseDouble(formattedValue);
         });
 
         maxSpeedSlider.valueProperty().addListener(arg -> {
             double value = maxSpeedSlider.getValue();
             String formattedValue = df.format(value);
             maxSpeedSliderInfo.setText(formattedValue);
-            Boid.maxSpeed = Double.parseDouble(formattedValue);
+            Model.maxSpeed = Double.parseDouble(formattedValue);
         });
 
         maxForceSlider.valueProperty().addListener(arg -> {
             double value = maxForceSlider.getValue();
             String formattedValue = df.format(value);
             maxForceSliderInfo.setText(formattedValue);
-            Boid.maxForce = Double.parseDouble(formattedValue);
+            Model.maxForce = Double.parseDouble(formattedValue);
         });
 
         opponentSlider.valueProperty().addListener(arg -> {
@@ -325,11 +327,11 @@ public class MainController {
         separationSlider.setValue(Model.separationWeight);
         cohesionSlider.setValue(Model.cohesionWeight);
         alignmentSlider.setValue(Model.alignmentWeight);
-        neighbourhoodRadiusSlider.setValue(Boid.getNeighbourhoodRadius());
-        separationRadiusSlider.setValue(Boid.separationRadius);
+        neighbourhoodRadiusSlider.setValue(Model.getNeighbourhoodRadius());
+        separationRadiusSlider.setValue(Model.separationRadius);
         shapeSizeSlider.setValue(Shape.shapeSize);
-        maxSpeedSlider.setValue(Boid.maxSpeed);
-        maxForceSlider.setValue(Boid.maxForce);
+        maxSpeedSlider.setValue(Model.maxSpeed);
+        maxForceSlider.setValue(Model.maxForce);
         opponentSlider.setValue(Model.opponentWeight);
         obstacleSizeSlider.setValue(Model.obstacleRadius);
         obstacleWeightSlider.setValue(Model.obstacleWeight);
@@ -371,13 +373,14 @@ public class MainController {
 
     private void drawBoids(GraphicsContext gc) {
         setBoidsCount();
-        for (BoidInfo boidInfo : model.getBoids()) {
-            shape.drawShape(gc, boid.getPosition(), boid.getAngle(), boid.getColor());
+        for (ActorRef actorRef : model.getBoidActorRefs()) {
+            BoidInfo boidInfo = model.getBoidInfo(actorRef);
+            shape.drawShape(gc, boidInfo.getPosition(), boidInfo.getAngle(), boidInfo.createColor());
             if (enableNeighbourhoodRadiusButton.isSelected()) {
-                shape.drawNeighbourhoodRadius(gc, boid.getPosition());
+                shape.drawNeighbourhoodRadius(gc, boidInfo.getPosition());
             }
             if (enableSeparationRadiusButton.isSelected()) {
-                shape.drawSeparationRadius(gc, boid.getPosition());
+                shape.drawSeparationRadius(gc, boidInfo.getPosition());
             }
         }
     }

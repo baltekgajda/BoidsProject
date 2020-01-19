@@ -6,6 +6,8 @@ import akka.japi.pf.ReceiveBuilder;
 import boids.model.enums.BoidMethod;
 import boids.model.enums.BordersAvoidanceFunction;
 import boids.model.messages.MessageApplyAllRules;
+import boids.model.messages.MessageAskForBoidData;
+import boids.model.messages.ReplyAskForBoidData;
 import boids.view.View;
 import boids.view.shapes.Shape;
 import com.typesafe.config.ConfigException;
@@ -23,16 +25,16 @@ import static akka.pattern.Patterns.pipe;
 
 public class Boid extends AbstractActor {
 
-    private final static double EDGE_RADIUS = 30.0;        //distance to avoid borders
-    public static double separationRadius = 10.0;
-    public static double maxSpeed = 3.0;
-    public static double maxForce = 0.1;
+    private final double EDGE_RADIUS = 30.0;        //distance to avoid borders
+    private double separationRadius = 10.0;
+    private double maxSpeed = 3.0;
+    private double maxForce = 0.1;
 
     private Vector2d position;
     private Vector2d velocity;
     private Vector2d forces;
     private boolean isOpponent;
-    ActorRef target;
+//    ActorRef target;
 //    @Override
 //    public Receive createReceive() {
 //        return null;
@@ -45,13 +47,15 @@ public class Boid extends AbstractActor {
 //
 //                .build();
         return receiveBuilder()
-                .match(Double.class, d -> {
-//                    CompletableFuture<Object> fut =
-//                            (CompletableFuture<Object>) ask(target, "some message", 200);
-                    Future<Object> fut = ask(target, "some message", 200).toCompletableFuture();
-
-                    // the pipe pattern
-                    pipe(fut, getContext().dispatcher()).to(getSender());
+                .match(MessageAskForBoidData.class, o -> {
+                    ReplyAskForBoidData reply = new ReplyAskForBoidData(o.getActorRef(), createBoidInfo());
+                    sender().tell(reply, ActorRef.noSender());
+////                    CompletableFuture<Object> fut =
+////                            (CompletableFuture<Object>) ask(target, "some message", 200);
+////                    Future<Object> fut = ask(target, "some message", 200).toCompletableFuture();
+//
+//                    // the pipe pattern
+//                    pipe(fut, getContext().dispatcher()).to(getSender());
 
                 }).build();
     }
@@ -78,6 +82,11 @@ public class Boid extends AbstractActor {
         this.isOpponent = isOpponent;
     }
 
+    private BoidInfo createBoidInfo()
+    {
+        return new BoidInfo(position, velocity, forces, getAngle(), isOpponent);
+    }
+
     private Vector2d getRandomPosition() {
         double x = new Random().nextInt(View.CANVAS_WIDTH);
         double y = new Random().nextInt(View.CANVAS_HEIGHT);
@@ -91,15 +100,15 @@ public class Boid extends AbstractActor {
         return new Vector2d(x, y);
     }
 
-    public Vector2d getPosition() {
+    private Vector2d getPosition() {
         return position;
     }
 
-    void setPosition(Vector2d position) {
+    private void setPosition(Vector2d position) {
         this.position = position;
     }
 
-    public Color getColor() {
+    private Color getColor() {
         if (isOpponent) {
             return Color.RED;
         }
@@ -107,13 +116,13 @@ public class Boid extends AbstractActor {
         return null;
     }
 
-    double getDistance(Boid boid) {
+    private double getDistance(Boid boid) {
         Vector2d dist = new Vector2d();
         dist.sub(this.position, boid.getPosition());
         return dist.length();
     }
 
-    public double getAngle() {
+    private double getAngle() {
         double angle = velocity.angle(Shape.rotationVector);
         if (velocity.getX() > 0) {
             return -angle;
@@ -122,7 +131,7 @@ public class Boid extends AbstractActor {
         return angle;
     }
 
-    void applyAllRules(LinkedList<Boid> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+    private void applyAllRules(LinkedList<Boid> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
         this.separate(neighbours, separationWeight);
         this.provideCohesion(neighbours, cohesionWeight);
         this.align(neighbours, alignmentWeight);
@@ -133,7 +142,7 @@ public class Boid extends AbstractActor {
 //        System.out.println(bordersAvoidanceFunction.toString());
     }
 
-    void moveToNewPosition() {
+    private void moveToNewPosition() {
         this.velocity.add(forces);
         limitVelocity();
         this.position.add(this.velocity);
@@ -141,13 +150,13 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides separation between boids
-    void separate(LinkedList<Boid> neighbours, double behaviourWeight) {
+    private void separate(LinkedList<Boid> neighbours, double behaviourWeight) {
         Vector2d diff = new Vector2d();
         Vector2d sum = new Vector2d();
         double count = 0;
 
         for (Boid other : neighbours) {
-            if (this.getDistance(other) >= Boid.separationRadius) {
+            if (this.getDistance(other) >= separationRadius) {
                 continue;
             }
 
@@ -177,7 +186,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides cohesion between boids
-    void provideCohesion(LinkedList<Boid> neighbours, double behaviourWeight) {
+    private void provideCohesion(LinkedList<Boid> neighbours, double behaviourWeight) {
         Vector2d sum = new Vector2d();
         double count = 0;
 
@@ -197,7 +206,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides alignment between boids
-    void align(LinkedList<Boid> neighbours, double behaviourWeight) {
+    private void align(LinkedList<Boid> neighbours, double behaviourWeight) {
         Vector2d sum = new Vector2d();
         double count = 0;
 
@@ -221,7 +230,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides opponent avoidance
-    void avoidOpponents(LinkedList<Boid> neighbours, double opponentWeight) {
+    private void avoidOpponents(LinkedList<Boid> neighbours, double opponentWeight) {
         if (isOpponent) {
             return;
         }
@@ -248,7 +257,7 @@ public class Boid extends AbstractActor {
 
 
     //function that provides obstacle avoidance
-    void avoidObstacles(ArrayList<Obstacle> obstacles, double edgeDistance, double behaviourWeight) {
+    private void avoidObstacles(ArrayList<Obstacle> obstacles, double edgeDistance, double behaviourWeight) {
         Vector2d avoidVector = new Vector2d();
         Vector2d diff = new Vector2d();
         double length;
@@ -267,13 +276,13 @@ public class Boid extends AbstractActor {
         }
 
         avoidVector.normalize();
-        avoidVector.scale(Boid.maxSpeed);
+        avoidVector.scale(maxSpeed);
         Vector2d steerForce = calculateSteerForce(avoidVector, velocity);
         steerForce.scale(behaviourWeight);
         applyForce(steerForce);
     }
 
-    public void avoidBorders(BordersAvoidanceFunction bordersAvoidanceFunction) {
+    private void avoidBorders(BordersAvoidanceFunction bordersAvoidanceFunction) {
         switch (bordersAvoidanceFunction) {
             case FOLD_ON_BORDERS: {
                 System.out.println("folding");
@@ -310,20 +319,20 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides turning back on borders
-    void turnBackOnBorders() {
+    private void turnBackOnBorders() {
         Vector2d avoidVector, avoidVectorX, avoidVectorY;
         if (position.getX() < EDGE_RADIUS) {
-            avoidVectorX = new Vector2d(Boid.maxSpeed, velocity.getY());
+            avoidVectorX = new Vector2d(maxSpeed, velocity.getY());
         } else if (position.getX() > (View.CANVAS_WIDTH - EDGE_RADIUS)) {
-            avoidVectorX = new Vector2d(-Boid.maxSpeed, velocity.getY());
+            avoidVectorX = new Vector2d(-maxSpeed, velocity.getY());
         } else {
             avoidVectorX = new Vector2d();
         }
 
         if (position.getY() < EDGE_RADIUS) {
-            avoidVectorY = new Vector2d(velocity.getX(), Boid.maxSpeed);
+            avoidVectorY = new Vector2d(velocity.getX(), maxSpeed);
         } else if (position.getY() > (View.CANVAS_HEIGHT - EDGE_RADIUS)) {
-            avoidVectorY = new Vector2d(velocity.getX(), -Boid.maxSpeed);
+            avoidVectorY = new Vector2d(velocity.getX(), -maxSpeed);
         } else {
             avoidVectorY = new Vector2d();
         }
@@ -335,7 +344,7 @@ public class Boid extends AbstractActor {
         }
 
         avoidVector.normalize();
-        avoidVector.scale(Boid.maxSpeed);
+        avoidVector.scale(maxSpeed);
         Vector2d steerForce = calculateSteerForce(avoidVector, velocity);
         steerForce.scale(Model.bordersWeight);
         applyForce(steerForce);

@@ -1,5 +1,6 @@
 package boids.model;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -11,6 +12,7 @@ import static akka.pattern.Patterns.pipe;
 
 import akka.dispatch.Mapper;
 import akka.dispatch.OnComplete;
+import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
 import boids.model.enums.BordersAvoidanceFunction;
@@ -29,7 +31,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class Model {
+public class Model extends AbstractActor {
     public static double obstacleRadius = 15.0;
     public static double separationWeight = 2.0;
     public static double cohesionWeight = 1.0;
@@ -38,9 +40,13 @@ public class Model {
     public static double bordersWeight = 2.5;
     public static double obstacleWeight = 2.5;
     private static double voxelSize = setVoxelSize();
-    private static double neighbourhoodRadius = 30.0;
+    public static double neighbourhoodRadius = 30.0;
+    public static double separationRadius;
+    public static double maxSpeed;
+    public static double maxForce;
+//    private double neighbourhoodRadius;
 
-//    private ArrayList<Boid> boids;
+    //    private ArrayList<Boid> boids;
     private ArrayList<Obstacle> obstacles;
     private HashMap<Pair<Integer, Integer>, LinkedList<ActorRef>> voxels;
     private HashMap<ActorRef, BoidInfo> boidInfos;
@@ -53,6 +59,15 @@ public class Model {
     private ActorRef modelActorRef;
     private Timeout timeout;
 
+
+    @Override
+    public Receive createReceive() {
+        return new ReceiveBuilder()
+                .matchAny(o -> {
+                    System.out.println(o.toString());
+                })
+                .build();
+    }
 
     public Model() {
         boidsActorSystem = ActorSystem.create("boids-simulation");
@@ -129,6 +144,7 @@ public class Model {
         askBoidsForPosition();
         for (ActorRef boidRef : boidActorRefs) {
             LinkedList<BoidInfo> neighbours = getBoidNeighbours(boidRef);
+            ActorRef actorRef;
             modelActorRef.tell(new MessageApplyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction), modelActorRef);
 
 //            boid.applyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction);
@@ -277,6 +293,10 @@ public class Model {
 
     public static double getNeighbourhoodRadius() {
         return neighbourhoodRadius;
+    }
+
+    public ArrayList<ActorRef> getBoidActorRefs() {
+        return boidActorRefs;
     }
 }
 
