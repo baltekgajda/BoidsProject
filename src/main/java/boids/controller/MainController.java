@@ -358,6 +358,7 @@ public class MainController {
         clearCanvas(gc);
         drawBoids(gc);
         drawObstacles(gc);
+        model.sendInfoToBoids();
         model.findNewBoidsPositions();
         long estimatedTime = System.currentTimeMillis() - startTime;
         long animationCurrentRate = (long) animationTimeline.getKeyFrames().get(1).getTime().toMillis();

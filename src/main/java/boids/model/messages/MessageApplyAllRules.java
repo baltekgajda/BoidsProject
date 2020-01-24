@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class MessageApplyAllRules {
-    LinkedList<BoidInfo> neighbours;
+//    LinkedList<BoidInfo> neighbours;
     ArrayList<Obstacle> obstacles;
     double separationWeight;
     double cohesionWeight;
@@ -19,8 +19,8 @@ public class MessageApplyAllRules {
     double obstacleWeight;
     BordersAvoidanceFunction bordersAvoidanceFunction;
 
-    public MessageApplyAllRules(LinkedList<BoidInfo> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
-        this.neighbours = neighbours;
+    public MessageApplyAllRules(/*LinkedList<BoidInfo> neighbours,*/ ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+//        this.neighbours = neighbours;
         this.obstacles = obstacles;
         this.separationWeight = separationWeight;
         this.cohesionWeight = cohesionWeight;
@@ -34,7 +34,7 @@ public class MessageApplyAllRules {
     @Override
     public String toString() {
         return "MessageApplyAllRules{" +
-                "neighbours=" + neighbours +
+//                "neighbours=" + neighbours +
                 ", obstacles=" + obstacles +
                 ", separationWeight=" + separationWeight +
                 ", cohesionWeight=" + cohesionWeight +

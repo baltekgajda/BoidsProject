@@ -145,7 +145,7 @@ public class Model extends AbstractActor {
         for (ActorRef boidRef : boidActorRefs) {
             LinkedList<BoidInfo> neighbours = getBoidNeighbours(boidRef);
             ActorRef actorRef;
-            modelActorRef.tell(new MessageApplyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction), modelActorRef);
+            modelActorRef.tell(new MessageApplyAllRules(obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction), modelActorRef);
 
 //            boid.applyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction);
         }
@@ -297,6 +297,10 @@ public class Model extends AbstractActor {
 
     public ArrayList<ActorRef> getBoidActorRefs() {
         return boidActorRefs;
+    }
+
+    public void sendInfoToBoids() {
+        //TODO implement sending info about all boids
     }
 }
 

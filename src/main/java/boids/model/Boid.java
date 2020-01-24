@@ -5,9 +5,7 @@ import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import boids.model.enums.BoidMethod;
 import boids.model.enums.BordersAvoidanceFunction;
-import boids.model.messages.MessageApplyAllRules;
-import boids.model.messages.MessageAskForBoidData;
-import boids.model.messages.ReplyAskForBoidData;
+import boids.model.messages.*;
 import boids.view.View;
 import boids.view.shapes.Shape;
 import com.typesafe.config.ConfigException;
@@ -15,6 +13,7 @@ import javafx.scene.paint.Color;
 
 import javax.vecmath.Vector2d;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
@@ -34,6 +33,10 @@ public class Boid extends AbstractActor {
     private Vector2d velocity;
     private Vector2d forces;
     private boolean isOpponent;
+    private HashMap<ActorRef, BoidInfo> otherBoidsInfo; //TODO implement getting this data
+    private ActorRef selfRef;
+
+//    private
 //    ActorRef target;
 //    @Override
 //    public Receive createReceive() {
@@ -50,14 +53,19 @@ public class Boid extends AbstractActor {
                 .match(MessageAskForBoidData.class, o -> {
                     ReplyAskForBoidData reply = new ReplyAskForBoidData(o.getActorRef(), createBoidInfo());
                     sender().tell(reply, ActorRef.noSender());
-////                    CompletableFuture<Object> fut =
-////                            (CompletableFuture<Object>) ask(target, "some message", 200);
-////                    Future<Object> fut = ask(target, "some message", 200).toCompletableFuture();
-//
-//                    // the pipe pattern
-//                    pipe(fut, getContext().dispatcher()).to(getSender());
+                })
+                .match(MessageBoidData.class, o ->{
+                    otherBoidsInfo.put(getSender(), o.getBoidInfo());
+                })
+                .match(MessageAllBoidData.class, o -> {
+                    //TODO implement getting data for all positions
+                })
+                .build();
+    }
 
-                }).build();
+    private LinkedList<BoidInfo> findNeighbours(){
+        //TODO
+        return null;
     }
 
 //    private Object selectAction(BoidMethod boidMethod, ) {
@@ -82,6 +90,10 @@ public class Boid extends AbstractActor {
         this.isOpponent = isOpponent;
     }
 
+    private void tellOthersWhereAmI() {
+        for (ActorRef actorRef: otherBoidsInfo.keySet())
+            actorRef.tell(new MessageBoidData(createBoidInfo()), selfRef);
+    }
     private BoidInfo createBoidInfo()
     {
         return new BoidInfo(position, velocity, forces, getAngle(), isOpponent);
@@ -131,7 +143,8 @@ public class Boid extends AbstractActor {
         return angle;
     }
 
-    private void applyAllRules(LinkedList<Boid> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+    private void applyAllRules(/*LinkedList<Boid> neighbours, */ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+        LinkedList<BoidInfo> neighbours = findNeighbours();
         this.separate(neighbours, separationWeight);
         this.provideCohesion(neighbours, cohesionWeight);
         this.align(neighbours, alignmentWeight);
@@ -150,13 +163,13 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides separation between boids
-    private void separate(LinkedList<Boid> neighbours, double behaviourWeight) {
+    private void separate(LinkedList<BoidInfo> neighbours, double behaviourWeight) {
         Vector2d diff = new Vector2d();
         Vector2d sum = new Vector2d();
         double count = 0;
 
-        for (Boid other : neighbours) {
-            if (this.getDistance(other) >= separationRadius) {
+        for (BoidInfo other : neighbours) {
+            if (this.createBoidInfo().getDistance(other) >= separationRadius) {
                 continue;
             }
 
@@ -186,11 +199,11 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides cohesion between boids
-    private void provideCohesion(LinkedList<Boid> neighbours, double behaviourWeight) {
+    private void provideCohesion(LinkedList<BoidInfo> neighbours, double behaviourWeight) {
         Vector2d sum = new Vector2d();
         double count = 0;
 
-        for (Boid other : neighbours) {
+        for (BoidInfo other : neighbours) {
             sum.add(other.position);
             count += 1;
         }
@@ -206,11 +219,11 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides alignment between boids
-    private void align(LinkedList<Boid> neighbours, double behaviourWeight) {
+    private void align(LinkedList<BoidInfo> neighbours, double behaviourWeight) {
         Vector2d sum = new Vector2d();
         double count = 0;
 
-        for (Boid other : neighbours) {
+        for (BoidInfo other : neighbours) {
             sum.add(other.velocity);
             count += 1;
         }
@@ -230,7 +243,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides opponent avoidance
-    private void avoidOpponents(LinkedList<Boid> neighbours, double opponentWeight) {
+    private void avoidOpponents(LinkedList<BoidInfo> neighbours, double opponentWeight) {
         if (isOpponent) {
             return;
         }
@@ -238,7 +251,7 @@ public class Boid extends AbstractActor {
         Vector2d sum = new Vector2d();
         double count = 0;
 
-        for (Boid other : neighbours) {
+        for (BoidInfo other : neighbours) {
             if (other.isOpponent) {
                 sum.add(other.position);
                 count += 1;
@@ -285,12 +298,12 @@ public class Boid extends AbstractActor {
     private void avoidBorders(BordersAvoidanceFunction bordersAvoidanceFunction) {
         switch (bordersAvoidanceFunction) {
             case FOLD_ON_BORDERS: {
-                System.out.println("folding");
+//                System.out.println("folding");
                 foldOnBorders();
                 break;
             }
             case TURN_BACK_ON_BORDERS: {
-                System.out.println("turning");
+//                System.out.println("turning");
                 turnBackOnBorders();
                 break;
             }
