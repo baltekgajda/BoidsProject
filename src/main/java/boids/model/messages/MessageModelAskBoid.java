@@ -8,6 +8,7 @@ import boids.model.enums.BordersAvoidanceFunction;
 import java.util.ArrayList;
 
 public class MessageModelAskBoid {
+    ActorRef senderActorRef;
     ArrayList<ActorRef> neighbours;
     ArrayList<Obstacle> obstacles;
     double separationWeight;
@@ -18,7 +19,8 @@ public class MessageModelAskBoid {
     double obstacleWeight;
     BordersAvoidanceFunction bordersAvoidanceFunction;
 
-    public MessageModelAskBoid(ArrayList<ActorRef> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+    public MessageModelAskBoid(ActorRef senderActorRef, ArrayList<ActorRef> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+        this.senderActorRef = senderActorRef;
         this.neighbours = neighbours;
         this.obstacles = obstacles;
         this.separationWeight = separationWeight;
@@ -29,5 +31,4 @@ public class MessageModelAskBoid {
         this.obstacleWeight = obstacleWeight;
         this.bordersAvoidanceFunction = bordersAvoidanceFunction;
     }
-
 }
