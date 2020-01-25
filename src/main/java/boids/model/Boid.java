@@ -47,15 +47,15 @@ public class Boid extends AbstractActor {
 //                .build();
         return receiveBuilder()
                 .match(MessageModelAskBoid.class, o -> {
-                    MessageBoidReplyModel reply = new MessageBoidReplyModel(o.getActorRef(), createBoidInfo());
-                    sender().tell(reply, ActorRef.noSender());
+                    MessageBoidReplyModel reply = new MessageBoidReplyModel(getSender(), createBoidInfo());
+                    sender().tell(reply, selfRef);
                 })
                 .match(MessageBoidTellBoid.class, o ->{
                     otherBoidsInfo.put(getSender(), o.getBoidInfo());
                 })
-                .match(MessageAllBoidData.class, o -> {
-                    //TODO implement getting data for all positions
-                })
+//                .match(MessageAllBoidData.class, o -> {
+//                    //TODO implement getting data for all positions
+//                })
                 .build();
     }
 
@@ -72,14 +72,16 @@ public class Boid extends AbstractActor {
 //        }
 //    }
 
-    Boid() {
+    Boid(ActorRef selfRef) {
+        this.selfRef = selfRef;
         this.position = getRandomPosition();
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
         this.isOpponent = false;
     }
 
-    Boid(Vector2d position, boolean isOpponent) {
+    Boid(ActorRef selfRef, Vector2d position, boolean isOpponent) {
+        this.selfRef = selfRef;
         this.position = position;
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
