@@ -5,20 +5,16 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
-import static akka.actor.Nobody.tell;
 import static akka.dispatch.Futures.sequence;
 import static akka.pattern.Patterns.ask;
 import static akka.pattern.Patterns.pipe;
 
 import akka.dispatch.Mapper;
-import akka.dispatch.OnComplete;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
 import akka.util.Timeout;
 import boids.model.enums.BordersAvoidanceFunction;
-import boids.model.messages.MessageApplyAllRules;
-import boids.model.messages.MessageAskForBoidData;
-import boids.model.messages.ReplyAskForBoidData;
+import boids.model.messages.MessageModelAskBoid;
+import boids.model.messages.MessageBoidReplyModel;
 import boids.view.View;
 import javafx.util.Pair;
 import scala.concurrent.Future;
@@ -29,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public class Model extends AbstractActor {
     public static double obstacleRadius = 15.0;
@@ -96,9 +91,7 @@ public class Model extends AbstractActor {
         Iterable<Future<Object>> futureArray = new ArrayList<>();
         for (ActorRef boidRef : boidActorRefs)
         {
-//            ask(boidRef, new MessageAskForBoidData(boidRef), 100);
-//            ask(boidRef, "ads", 100);
-            Future<Object> future = ask(boidRef, new MessageAskForBoidData(boidRef), timeout);
+            Future<Object> future = ask(boidRef, new MessageModelAskBoid(boidRef), timeout);
             ((ArrayList<Future<Object>>) futureArray).add(future);
             pipe(future, boidsActorSystem.getDispatcher());
         }
@@ -111,32 +104,13 @@ public class Model extends AbstractActor {
 //                                pipe(future, actorSystem.getDispatcher());
                                 for (Object o : objects)
                                 {
-                                    boidInfos.put(((ReplyAskForBoidData) o).getActorRef(), ((ReplyAskForBoidData) o).getBoidInfo());
+                                    boidInfos.put(((MessageBoidReplyModel) o).getActorRef(), ((MessageBoidReplyModel) o).getBoidInfo());
                                 }
                                 return boidInfos;
                             }
                         },
                         boidsActorSystem.getDispatcher());
 
-//        for (Boid boidRef : boids)
-//        {
-//            Future<Object> boidsInfoFuture = ask(boidListenerRefs.get(boidRef), MessageAskForBoidData.class, 100);
-//            pipe(boidsInfoFuture, boidsActorSystem.getDispatcher());
-//            boidsInfoFuture.onComplete(new OnComplete<Object>() {
-//                @Override
-//                public void onComplete(Throwable failure, Object success) throws Throwable {
-//                    ReplyAskForBoidData replyAskForBoidData = (ReplyAskForBoidData) success;
-//                    boidInfos.put(boidRef, replyAskForBoidData.getBoidInfo());
-////                    System.out.println("printing: " + mess.toString());
-//                }
-//            }, boidsActorSystem.getDispatcher());
-//
-//
-//
-////            CompletableFuture<Object> fut =
-////                    ask(boidListenerRefs.get(boidRef), "some message", 50).toCompletableFuture();
-//            Patterns.pipe(boidsInfoFuture, boidsActorSystem.getDispatcher());
-//            boidsInfoFuture.value();
 //        }
     }
     //function where all rules are added to a boid
@@ -147,7 +121,6 @@ public class Model extends AbstractActor {
             ActorRef actorRef;
             modelActorRef.tell(new MessageApplyAllRules(obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction), modelActorRef);
 
-//            boid.applyAllRules(neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction);
         }
 
         resetVoxels();
@@ -160,10 +133,6 @@ public class Model extends AbstractActor {
     public HashMap<ActorRef, BoidInfo> getBoidInfos() {
         return boidInfos;
     }
-
-    //    public ArrayList<Boid> getBoids() {
-//        return boids;
-//    }
 
     public ArrayList<Obstacle> getObstacles() {
         return obstacles;
@@ -209,7 +178,7 @@ public class Model extends AbstractActor {
 //    private Pair<Integer, Integer> getVoxelKey(Boid boid) {
     private Pair<Integer, Integer> getVoxelKey(ActorRef actorRef) {
 //        Future<Object> future = ask(boidRef,
-//                MessageAskForBoidData.class, 100);
+//                MessageModelAskBoid.class, 100);
 //        modelActorRef.a
         Vector2d pos = boidInfos.get(actorRef).getPosition();
         int x = (int) (pos.getX() / voxelSize);

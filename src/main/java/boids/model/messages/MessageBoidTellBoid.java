@@ -2,10 +2,10 @@ package boids.model.messages;
 
 import boids.model.BoidInfo;
 
-public class MessageBoidData {
+public class MessageBoidTellBoid {
     BoidInfo boidInfo;
 
-    public MessageBoidData(BoidInfo boidInfo) {
+    public MessageBoidTellBoid(BoidInfo boidInfo) {
         this.boidInfo = boidInfo;
     }
 

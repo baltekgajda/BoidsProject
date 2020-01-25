@@ -2,13 +2,10 @@ package boids.model;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.japi.pf.ReceiveBuilder;
-import boids.model.enums.BoidMethod;
 import boids.model.enums.BordersAvoidanceFunction;
 import boids.model.messages.*;
 import boids.view.View;
 import boids.view.shapes.Shape;
-import com.typesafe.config.ConfigException;
 import javafx.scene.paint.Color;
 
 import javax.vecmath.Vector2d;
@@ -17,7 +14,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
-import scala.concurrent.Future;
 //import akka.pattern.
 import static akka.pattern.Patterns.ask;
 import static akka.pattern.Patterns.pipe;
@@ -50,11 +46,11 @@ public class Boid extends AbstractActor {
 //
 //                .build();
         return receiveBuilder()
-                .match(MessageAskForBoidData.class, o -> {
-                    ReplyAskForBoidData reply = new ReplyAskForBoidData(o.getActorRef(), createBoidInfo());
+                .match(MessageModelAskBoid.class, o -> {
+                    MessageBoidReplyModel reply = new MessageBoidReplyModel(o.getActorRef(), createBoidInfo());
                     sender().tell(reply, ActorRef.noSender());
                 })
-                .match(MessageBoidData.class, o ->{
+                .match(MessageBoidTellBoid.class, o ->{
                     otherBoidsInfo.put(getSender(), o.getBoidInfo());
                 })
                 .match(MessageAllBoidData.class, o -> {
@@ -92,7 +88,7 @@ public class Boid extends AbstractActor {
 
     private void tellOthersWhereAmI() {
         for (ActorRef actorRef: otherBoidsInfo.keySet())
-            actorRef.tell(new MessageBoidData(createBoidInfo()), selfRef);
+            actorRef.tell(new MessageBoidTellBoid(createBoidInfo()), selfRef);
     }
     private BoidInfo createBoidInfo()
     {

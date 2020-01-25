@@ -4,10 +4,10 @@ package boids.model.messages;
 import akka.actor.ActorRef;
 import boids.model.BoidInfo;
 
-public class ReplyAskForBoidData {
+public class MessageBoidReplyModel {
     BoidInfo boidInfo;
     ActorRef actorRef;
-    public ReplyAskForBoidData(ActorRef actorRef, BoidInfo boidInfo) {
+    public MessageBoidReplyModel(ActorRef actorRef, BoidInfo boidInfo) {
         this.boidInfo = boidInfo;
         this.actorRef = actorRef;
     }
