@@ -58,6 +58,7 @@ public class Model extends AbstractActor {
                 })
                 .match(MessageGetDrawInfo.class, o -> {
                     sender().tell(new MessageReceiveDrawInfo(getBoidInfos(), getObstacles(), boidsCount), self());
+                    askBoidsForPosition();
                 })
                 .match(MessageGenerateBoids.class, o -> {
                     generateBoids(o.getAmountToGenerate());
@@ -154,9 +155,9 @@ public class Model extends AbstractActor {
         ActorRef boidActorRef;
         boidsCount++;
         if (pos == null) {
-            boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class), "Boid-" + boidsCount);
+            boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class));
         } else {
-            boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class, pos, isOpponent), "Boid-" + boidsCount);
+            boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class, pos, isOpponent));
         }
 
         boidActorRef.tell(new MessageGetBoidInfo(), self());

@@ -40,8 +40,8 @@ import java.util.concurrent.TimeoutException;
 
 public class MainController {
 
-    private final static long animationRate = 200;  //TODO zmienic na mniesjze
-    private static long animationRateStep = 100;
+    private final static long animationRate = 20;  //TODO zmienic na mniesjze
+    private static long animationRateStep = 10;
     private ActorRef modelRef;
     private View view;
     private Shape shape = new TriangleShape();
@@ -403,7 +403,7 @@ public class MainController {
     private void draw(GraphicsContext gc) {
         clearCanvas(gc);
         ActorRef ref = actorSystem.actorOf(Props.create(MainControllerActor.class));
-        Timeout t = new Timeout(500, TimeUnit.MILLISECONDS);
+        Timeout t = new Timeout(50, TimeUnit.MILLISECONDS);
         Future<Object> fut = Patterns.ask(modelRef, new MessageGetDrawInfo(), t);
         MessageReceiveDrawInfo response = null; //TODO co jak nie zdazy na czas jak timeout e
         try {
