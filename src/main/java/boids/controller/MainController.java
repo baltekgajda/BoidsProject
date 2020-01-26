@@ -1,5 +1,6 @@
 package boids.controller;
 
+import akka.actor.Actor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -34,6 +35,7 @@ import javax.vecmath.Vector2d;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -382,8 +384,8 @@ public class MainController {
         runAnimation();
     }
 
-    private void drawBoids(GraphicsContext gc, ArrayList<BoidInfo> boidsInfos) {
-        for (BoidInfo boidInfo : boidsInfos) {
+    private void drawBoids(GraphicsContext gc, HashMap<ActorRef, BoidInfo> boidsInfos) {
+        for (BoidInfo boidInfo : boidsInfos.values()) {
             shape.drawShape(gc, boidInfo.getPosition(), boidInfo.getAngle(), boidInfo.createColor());
             if (enableNeighbourhoodRadiusButton.isSelected()) {
                 shape.drawNeighbourhoodRadius(gc, boidInfo.getPosition());
@@ -404,14 +406,13 @@ public class MainController {
     private void draw(GraphicsContext gc) {
         clearCanvas(gc);
         ActorRef ref = actorSystem.actorOf(Props.create(MainControllerActor.class));
-        Timeout t = new Timeout(50, TimeUnit.MILLISECONDS);
+        Timeout t = new Timeout(500, TimeUnit.MILLISECONDS);
         Future<Object> fut = Patterns.ask(modelRef, new MessageGetDrawInfo(), t);
         MessageReceiveDrawInfo response = null; //TODO co jak nie zdazy na czas jak timeout e
         try {
             response = (MessageReceiveDrawInfo) Await.result(fut, t.duration());
         } catch (TimeoutException | InterruptedException e) {
             e.printStackTrace();    //TODO co zrobic jak bedzie blad ze nie zdazyl
-            actorSystem.stop(ref);
             return;
         }
 

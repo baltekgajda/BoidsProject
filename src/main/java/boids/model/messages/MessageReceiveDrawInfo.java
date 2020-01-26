@@ -5,19 +5,20 @@ import boids.model.BoidInfo;
 import boids.model.Obstacle;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class MessageReceiveDrawInfo {
-    ArrayList<BoidInfo> boidsInfo;
+    HashMap<ActorRef, BoidInfo> boidsInfo;
     ArrayList<Obstacle> obstacles;
     int boidsCount;
 
-    public MessageReceiveDrawInfo(ArrayList<BoidInfo> boidsInfo, ArrayList<Obstacle> obstacles, int boidsCount) {
+    public MessageReceiveDrawInfo(HashMap<ActorRef, BoidInfo> boidsInfo, ArrayList<Obstacle> obstacles, int boidsCount) {
         this.boidsInfo = boidsInfo;
         this.obstacles = obstacles;
         this.boidsCount = boidsCount;
     }
 
-    public ArrayList<BoidInfo> getBoidsInfo() {
+    public HashMap<ActorRef, BoidInfo> getBoidsInfo() {
         return boidsInfo;
     }
 

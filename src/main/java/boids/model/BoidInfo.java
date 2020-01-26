@@ -5,11 +5,11 @@ import javafx.scene.paint.Color;
 import javax.vecmath.Vector2d;
 
 public class BoidInfo {
-    Vector2d position;
-    Vector2d velocity;
-    Vector2d forces;
-    double angle;
-    boolean isOpponent;
+    private Vector2d position;
+    private Vector2d velocity;
+    private Vector2d forces;
+    private double angle;
+    private boolean isOpponent;
 
     public Vector2d getPosition() {
         return position;
@@ -27,6 +27,8 @@ public class BoidInfo {
         return angle;
     }
 
+    public boolean getIsOpponent() { return isOpponent;}
+
     public BoidInfo(Vector2d position, Vector2d velocity, Vector2d forces, double angle, boolean isOpponent) {
         this.position = position;
         this.velocity = velocity;
@@ -41,7 +43,7 @@ public class BoidInfo {
         try {
             dist.sub(this.position, boidInfo.getPosition());
         } catch (Exception e) {
-            System.out.println("position: " + this.position);
+            System.out.println("-----------------" + this + "      " + boidInfo);
             e.printStackTrace();
             throw e;
         }

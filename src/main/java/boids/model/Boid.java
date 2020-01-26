@@ -59,10 +59,11 @@ public class Boid extends AbstractActor {
                     sender().tell(new MessageReplyBoidInfo(new BoidInfo(position, velocity, forces, getAngle(), isOpponent)), self());
                 })
                 .match(MessageModelAskBoid.class, messageModelAskBoid -> {
-                    fillBoidInfoHashMap(messageModelAskBoid);
-                    boidInfoListenerRef.tell(new MessageBoidTellBoidListener(self(), createBoidInfo()), self());
                     MessageBoidReplyModel reply = new MessageBoidReplyModel(getSender(), createBoidInfo());
                     sender().tell(reply, self());
+
+                    fillBoidInfoHashMap(messageModelAskBoid);
+                    boidInfoListenerRef.tell(new MessageBoidTellBoidListener(self(), createBoidInfo()), self());
                     applyAllRules(messageModelAskBoid);
                 })
 //                .match(MessageBoidTellBoidListener.class, o -> {
@@ -225,7 +226,11 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
+        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
+        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
+        for(BoidInfo info: withNulls)
+            if(info != null)
+                boidInfoArrayList.add(info);
         this.separate(boidInfoArrayList, messageModelAskBoid.getSeparationWeight());
         this.provideCohesion(boidInfoArrayList, messageModelAskBoid.getCohesionWeight());
         this.align(boidInfoArrayList, messageModelAskBoid.getAlignmentWeight());
@@ -254,7 +259,7 @@ public class Boid extends AbstractActor {
                 continue;
             }
 
-            diff.sub(this.position, other.position);
+            diff.sub(this.position, other.getPosition());
             if (diff.equals(new Vector2d())) {
                 diff = new Vector2d(1.0, 1.0);
             } else {
@@ -285,7 +290,7 @@ public class Boid extends AbstractActor {
         double count = 0;
 
         for (BoidInfo other : neighbours) {
-            sum.add(other.position);
+            sum.add(other.getPosition());
             count += 1;
         }
 
@@ -305,7 +310,7 @@ public class Boid extends AbstractActor {
         double count = 0;
 
         for (BoidInfo other : neighbours) {
-            sum.add(other.velocity);
+            sum.add(other.getVelocity());
             count += 1;
         }
 
@@ -333,8 +338,8 @@ public class Boid extends AbstractActor {
         double count = 0;
 
         for (BoidInfo other : neighbours) {
-            if (other.isOpponent) {
-                sum.add(other.position);
+            if (other.getIsOpponent()) {
+                sum.add(other.getPosition());
                 count += 1;
             }
         }
