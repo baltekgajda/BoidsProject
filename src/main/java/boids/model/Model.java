@@ -5,6 +5,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
+import static akka.dispatch.Futures.future;
 import static akka.dispatch.Futures.sequence;
 import static akka.pattern.Patterns.ask;
 import static akka.pattern.Patterns.pipe;
@@ -39,17 +40,15 @@ public class Model extends AbstractActor {
     public static double separationRadius;
     public static double maxSpeed;
     public static double maxForce;
-//    private double neighbourhoodRadius;
 
-    //    private ArrayList<Boid> boids;
     private ArrayList<Obstacle> obstacles;
     private HashMap<Pair<Integer, Integer>, LinkedList<ActorRef>> voxels;
     private HashMap<ActorRef, BoidInfo> boidInfos;
     private boolean isTurningBackOnBordersEnabled;
     private BordersAvoidanceFunction bordersAvoidanceFunction;
     private int boidsCount;
-    private ArrayList<ActorRef> boidActorRefs;
-    private Map<ActorRef, ActorRef> boidListenerRefs;
+    private ArrayList<ActorRef> boidActorRefs = new ArrayList<>();
+    private Map<ActorRef, ActorRef> boidListenerRefs = new HashMap<>();
     private ActorSystem boidsActorSystem;
     private ActorRef modelActorRef;
     private Timeout timeout;
@@ -68,7 +67,6 @@ public class Model extends AbstractActor {
         boidsActorSystem = ActorSystem.create("boids-simulation");
         modelActorRef = boidsActorSystem.actorOf(Props.create(Model.class), "modelActor");
         timeout = Timeout.create(Duration.ofMillis(50));
-//        boids = new ArrayList<>();
         obstacles = new ArrayList<>();
         voxels = new HashMap<>();
         setAvoidBordersFunctionToTurningBack();
@@ -85,13 +83,16 @@ public class Model extends AbstractActor {
         return voxelSize;
     }
 
-    public void askBoidsForPosition()
-    {
-
+    public void askBoidsForPosition() {
         Iterable<Future<Object>> futureArray = new ArrayList<>();
-        for (ActorRef boidRef : boidActorRefs)
-        {
-            Future<Object> future = ask(boidRef, new MessageModelAskBoid(boidRef), timeout);
+        for (ActorRef boidRef : boidActorRefs) {
+            ArrayList<ActorRef> neighbours = getBoidNeighbours(boidRef);
+            MessageModelAskBoid message = new MessageModelAskBoid(
+                    boidRef, neighbours, obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight, obstacleRadius,
+                    obstacleWeight, separationRadius, bordersWeight, maxSpeed, maxForce, bordersAvoidanceFunction
+            );
+
+            Future<Object> future = ask(boidRef, message, timeout);
             ((ArrayList<Future<Object>>) futureArray).add(future);
             pipe(future, boidsActorSystem.getDispatcher());
         }
@@ -102,31 +103,18 @@ public class Model extends AbstractActor {
                         new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
                             public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
-                                for (Object o : objects)
-                                {
-                                    boidInfos.put(((MessageBoidReplyModel) o).getActorRef(), ((MessageBoidReplyModel) o).getBoidInfo());
+                                for (Object o : objects) {
+                                    boidInfos.put(((MessageBoidReplyModel) o).getSenderActorRef(), ((MessageBoidReplyModel) o).getBoidInfo());
                                 }
                                 return boidInfos;
                             }
                         },
                         boidsActorSystem.getDispatcher());
 
-//        }
-    }
-    //function where all rules are added to a boid
-    public void findNewBoidsPositions() {
-        askBoidsForPosition();
-        for (ActorRef boidRef : boidActorRefs) {
-            LinkedList<BoidInfo> neighbours = getBoidNeighbours(boidRef);
-            ActorRef actorRef;
-            modelActorRef.tell(new MessageApplyAllRules(obstacles, separationWeight, cohesionWeight, alignmentWeight, opponentWeight,  obstacleRadius, obstacleWeight, bordersAvoidanceFunction), modelActorRef);
-
-        }
-
         resetVoxels();
     }
 
-    public BoidInfo getBoidInfo(ActorRef actorRef){
+    public BoidInfo getBoidInfo(ActorRef actorRef) {
         return boidInfos.get(actorRef);
     }
 
@@ -145,23 +133,19 @@ public class Model extends AbstractActor {
     }
 
     public void addBoid(Vector2d pos, boolean isOpponent) {
-        ActorRef boidActorRef; // = boidsActorSystem.actorOf(Props.create(Boid.class), "boidActor");;
+        ActorRef boidActorRef;
         boidsCount++;
-//        Boid boid;
         if (pos == null) {
             boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class), "Boid-" + boidsCount);
-//            boid = new Boid();
         } else {
             boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class, pos, isOpponent), "Boid-" + boidsCount);
-//            boid = new Boid(pos, isOpponent);
         }
 
         boidActorRefs.add(boidActorRef);
-//        boids.add(boid);
         addToVoxel(boidActorRef);
     }
 
-//    private synchronized void addToVoxel(Boid boid) {
+    //    private synchronized void addToVoxel(Boid boid) {
     private synchronized void addToVoxel(ActorRef boidRef) {
         Pair key = getVoxelKey(boidRef);
         LinkedList<ActorRef> list = voxels.get(key);
@@ -175,15 +159,10 @@ public class Model extends AbstractActor {
         voxels.put(key, list);
     }
 
-//    private Pair<Integer, Integer> getVoxelKey(Boid boid) {
     private Pair<Integer, Integer> getVoxelKey(ActorRef actorRef) {
-//        Future<Object> future = ask(boidRef,
-//                MessageModelAskBoid.class, 100);
-//        modelActorRef.a
         Vector2d pos = boidInfos.get(actorRef).getPosition();
         int x = (int) (pos.getX() / voxelSize);
         int y = (int) (pos.getY() / voxelSize);
-
 
         if (isTurningBackOnBordersEnabled) {
             if (pos.getX() < 0) {
@@ -215,6 +194,9 @@ public class Model extends AbstractActor {
     public void removeBoids() {
         boidsCount = 0;
         boidInfos = new HashMap<>();
+        boidActorRefs = new ArrayList<>();
+        boidListenerRefs = new HashMap<>();
+        //TODO usun wszystkich agentow
         clearVoxels();
     }
 
@@ -226,8 +208,8 @@ public class Model extends AbstractActor {
         return boidsCount;
     }
 
-    private LinkedList<BoidInfo> getBoidNeighbours(ActorRef actorRef) {
-        LinkedList<BoidInfo> neighbours = new LinkedList<>();
+    private ArrayList<ActorRef> getBoidNeighbours(ActorRef actorRef) {
+        ArrayList<ActorRef> neighbours = new ArrayList<>();
         Pair<Integer, Integer> key = getVoxelKey(actorRef);
         int x = key.getKey();
         int y = key.getValue();
@@ -237,12 +219,12 @@ public class Model extends AbstractActor {
             LinkedList<ActorRef> voxelContent = voxels.get(new Pair<>(x + coordsX[i], y + coordsY[i]));
             if (voxelContent == null) continue;
             for (ActorRef otherRef : voxelContent) {
-                BoidInfo checkedBotInfo = boidInfos.get(key);
+                BoidInfo checkedBoidInfo = boidInfos.get(key);
                 BoidInfo otherBoidInfo = boidInfos.get(otherRef);
-                double dist = checkedBotInfo.getDistance(otherBoidInfo);
+                double dist = checkedBoidInfo.getDistance(otherBoidInfo);
 
                 if (dist > 0 && dist < neighbourhoodRadius) {
-                    neighbours.add(otherBoidInfo);
+                    neighbours.add(otherRef);
                 }
             }
         }
@@ -266,10 +248,6 @@ public class Model extends AbstractActor {
 
     public ArrayList<ActorRef> getBoidActorRefs() {
         return boidActorRefs;
-    }
-
-    public void sendInfoToBoids() {
-        //TODO implement sending info about all boids
     }
 }
 

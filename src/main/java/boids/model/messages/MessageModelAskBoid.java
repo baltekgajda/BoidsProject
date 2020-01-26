@@ -15,11 +15,19 @@ public class MessageModelAskBoid {
     double cohesionWeight;
     double alignmentWeight;
     double opponentWeight;
+    double bordersWeight;
     double obstacleRadius;
+    double separationRadius;
     double obstacleWeight;
+    double maxSpeed;
+    double maxForce;
     BordersAvoidanceFunction bordersAvoidanceFunction;
 
-    public MessageModelAskBoid(ActorRef senderActorRef, ArrayList<ActorRef> neighbours, ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
+    public MessageModelAskBoid(ActorRef senderActorRef, ArrayList<ActorRef> neighbours, ArrayList<Obstacle> obstacles, double separationWeight,
+                               double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight,
+                               double separationRadius, double bordersWeight, double maxSpeed, double maxForce,
+                               BordersAvoidanceFunction bordersAvoidanceFunction
+    ) {
         this.senderActorRef = senderActorRef;
         this.neighbours = neighbours;
         this.obstacles = obstacles;
@@ -30,5 +38,12 @@ public class MessageModelAskBoid {
         this.obstacleRadius = obstacleRadius;
         this.obstacleWeight = obstacleWeight;
         this.bordersAvoidanceFunction = bordersAvoidanceFunction;
+        this.separationRadius = separationRadius;
+        this.bordersWeight = bordersWeight;
+        this.maxSpeed = maxSpeed;
+        this.maxForce = maxForce;
+    }
+
+    public MessageModelAskBoid(ActorRef boidRef) {
     }
 }
