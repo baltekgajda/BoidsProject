@@ -81,14 +81,14 @@ public class Boid extends AbstractActor {
 
     @Override
     public void preStart(){
-        this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class), "BoidInfoListener");
+        this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class, self()), "BoidInfoListener");
     }
 
-    private void sendToActorsChild(ActorRef actorRef) {
-        String path = actorRef.path().toString() + "/BoidInfoListener";
-        getContext().getSystem().actorSelection(path).tell(new MessageBoidTellBoidListener(getContext().getSelf(), createBoidInfo()), getContext().getSelf());
-
-    }
+//    private void sendToActorsChild(ActorRef actorRef) {
+//        String path = actorRef.path().toString() + "/BoidInfoListener";
+//        getContext().getSystem().actorSelection(path).tell(new MessageBoidTellBoidListener(getContext().getSelf(), createBoidInfo()), getContext().getSelf());
+//
+//    }
 
     private Future<Object> askActorChild(ActorRef actorRef) {
         String path = actorRef.path().toString() + "/BoidInfoListener";
@@ -119,7 +119,7 @@ public class Boid extends AbstractActor {
                             public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
                                 for (Object o : objects) {
-                                    boidInfoHashMap.put(sender(), ((MessageBoidListenerReplyBoid) o).getBoidInfo());
+                                    boidInfoHashMap.put(((MessageBoidListenerReplyBoid) o).getBoidRef(), ((MessageBoidListenerReplyBoid) o).getBoidInfo());
                                 }
                                 return boidInfoHashMap;
                             }
@@ -258,8 +258,14 @@ public class Boid extends AbstractActor {
         double count = 0;
 
         for (BoidInfo other : neighbours) {
-            if (this.createBoidInfo().getDistance(other) >= separationRadius) {
-                continue;
+
+            try {
+                if (this.createBoidInfo().getDistance(other) >= separationRadius) {
+                    continue;
+                }
+            } catch (Exception e) {
+                System.out.println("neighbours: " + neighbours.toString());
+                e.printStackTrace();
             }
 
             diff.sub(this.position, other.getPosition());

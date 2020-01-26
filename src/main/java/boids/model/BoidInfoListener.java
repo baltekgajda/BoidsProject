@@ -11,6 +11,7 @@ import java.util.HashMap;
 public class BoidInfoListener extends AbstractActor {
     HashMap<ActorRef, BoidInfo> boidInfoHashMap = new HashMap<>();
     BoidInfo selfBoidInfo;
+    ActorRef boidRef;
     @Override
     public Receive createReceive() {
         return new ReceiveBuilder()
@@ -21,8 +22,12 @@ public class BoidInfoListener extends AbstractActor {
                     getSender().tell(new MessageBoidListenerReplyBoid(self(), selfBoidInfo), self());
                 })
                 .match(MessageBoidAskBoidListener.class, o ->{
-                    sender().tell(new MessageBoidListenerReplyBoid(self(), selfBoidInfo), self());
+                    sender().tell(new MessageBoidListenerReplyBoid(boidRef, selfBoidInfo), self());
                 })
                 .build();
+    }
+
+    public BoidInfoListener(ActorRef boidRef) {
+        this.boidRef = boidRef;
     }
 }

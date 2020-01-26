@@ -40,13 +40,7 @@ public class BoidInfo {
 
     public double getDistance(BoidInfo boidInfo) {
         Vector2d dist = new Vector2d();
-        try {
-            dist.sub(this.position, boidInfo.getPosition());
-        } catch (Exception e) {
-            System.out.println("-----------------" + this + "      " + boidInfo);
-            e.printStackTrace();
-            throw e;
-        }
+        dist.sub(this.position, boidInfo.getPosition());
         return dist.length();
     }
 

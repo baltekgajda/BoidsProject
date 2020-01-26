@@ -133,7 +133,7 @@ public class Model extends AbstractActor {
                                 public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
                                     for (Object o : objects) {
-                                        boidInfos.put(sender(), ((MessageBoidReplyModel) o).getBoidInfo());
+                                        boidInfos.put(((MessageBoidReplyModel) o).getSenderActorRef(), ((MessageBoidReplyModel) o).getBoidInfo());
                                     }
                                     return boidInfos;
                                 }
@@ -256,7 +256,13 @@ public class Model extends AbstractActor {
                 if(otherBoidInfo == null || checkedBoidInfo.equals(otherBoidInfo)) {
                     continue;
                 }
-                double dist = checkedBoidInfo.getDistance(otherBoidInfo);
+                double dist = 0;
+                try {
+                    dist = checkedBoidInfo.getDistance(otherBoidInfo);
+                } catch (Exception e) {
+                    System.out.println("GET DISTANCE CRASHED");
+                    e.printStackTrace();
+                }
 
                 if (dist > 0 && dist < neighbourhoodRadius) {
                     neighbours.add(otherRef);

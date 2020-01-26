@@ -6,11 +6,11 @@ import boids.model.BoidInfo;
 import java.util.HashMap;
 
 public class MessageBoidListenerReplyBoid {
-    ActorRef senderRef;
+    ActorRef boidRef;
     BoidInfo boidInfo;
 
     public MessageBoidListenerReplyBoid(ActorRef senderRef, BoidInfo boidInfo) {
-        this.senderRef = senderRef;
+        this.boidRef = senderRef;
         this.boidInfo = boidInfo;
     }
 
@@ -18,7 +18,7 @@ public class MessageBoidListenerReplyBoid {
         return boidInfo;
     }
 
-    public ActorRef getSenderRef() {
-        return senderRef;
+    public ActorRef getBoidRef() {
+        return boidRef;
     }
 }
