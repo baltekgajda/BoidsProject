@@ -1,22 +1,28 @@
 package boids.model;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
+import akka.actor.*;
+import akka.dispatch.Mapper;
+import akka.util.Timeout;
 import boids.model.enums.BordersAvoidanceFunction;
 import boids.model.messages.*;
 import boids.view.View;
 import boids.view.shapes.Shape;
 import javafx.scene.paint.Color;
+import scala.collection.immutable.IndexedSeq;
+import scala.concurrent.Future;
 
 import javax.vecmath.Vector2d;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
 //import akka.pattern.
+import static akka.dispatch.Futures.sequence;
 import static akka.pattern.Patterns.ask;
 import static akka.pattern.Patterns.pipe;
+
 
 public class Boid extends AbstractActor {
 
@@ -24,13 +30,15 @@ public class Boid extends AbstractActor {
     private double separationRadius = 10.0;
     private double maxSpeed = 3.0;
     private double maxForce = 0.1;
+    private Timeout timeout;
 
     private Vector2d position;
     private Vector2d velocity;
     private Vector2d forces;
     private boolean isOpponent;
-    private HashMap<ActorRef, BoidInfo> otherBoidsInfo; //TODO implement getting this data
+    private HashMap<ActorRef, BoidInfo> boidInfoHashMap; //TODO implement getting this data
     private ActorRef selfRef;
+    private ActorRef boidInfoListenerRef;
 
 //    private
 //    ActorRef target;
@@ -46,22 +54,58 @@ public class Boid extends AbstractActor {
 //
 //                .build();
         return receiveBuilder()
-                .match(MessageModelAskBoid.class, o -> {
+                .match(MessageModelAskBoid.class, messageModelAskBoid -> {
+                    boidInfoListenerRef.tell(new MessageBoidTellBoidListener(self(), createBoidInfo()), self());
                     MessageBoidReplyModel reply = new MessageBoidReplyModel(getSender(), createBoidInfo());
-                    sender().tell(reply, selfRef);
+                    getContext().actorOf(Props.create(BoidInfoListener.class, createBoidInfo()));
+                    sender().tell(reply, self());
+                    applyAllRules(messageModelAskBoid);
                 })
-                .match(MessageBoidTellBoid.class, o ->{
-                    otherBoidsInfo.put(getSender(), o.getBoidInfo());
-                })
+//                .match(MessageBoidTellBoidListener.class, o -> {
+//                    otherBoidsInfo.put(getSender(), o.getBoidInfo());
+//                })
+//                .match(MesBo)
 //                .match(MessageAllBoidData.class, o -> {
 //                    //TODO implement getting data for all positions
 //                })
                 .build();
     }
 
-    private LinkedList<BoidInfo> findNeighbours(){
-        //TODO
-        return null;
+    private void sendToActorsChild(ActorRef actorRef) {
+        String path = actorRef.path().toString() + "/BoidInfoListener";
+        getContext().getSystem().actorSelection(path).tell(new MessageBoidTellBoidListener(getContext().getSelf(), createBoidInfo()), getContext().getSelf());
+
+    }
+
+    private Future<Object> askActorChild(ActorRef actorRef) {
+        String path = actorRef.path().toString() + "/BoidInfoListener";
+        getContext().getSystem().actorSelection(path).tell(new MessageBoidTellBoidListener(getContext().getSelf(), createBoidInfo()), getContext().getSelf());
+        return ask(getContext().getSystem().actorSelection(path), new MessageBoidAskBoidListener(), timeout);
+
+    }
+
+
+    private void findNeighbours(ArrayList<ActorRef> neighbours) {
+        Iterable<Future<Object>> futureArray = new ArrayList<>();
+        for (ActorRef neighbourRef : neighbours) {
+            Future<Object> future = askActorChild(neighbourRef);
+            ((ArrayList<Future<Object>>) futureArray).add(future);
+            pipe(future, getContext().getDispatcher());
+        }
+
+        Future<Iterable<Object>> futureListOfObjects = sequence(futureArray, getContext().getDispatcher());
+        Future<HashMap<ActorRef, BoidInfo>> futureBoidsInfos =
+                futureListOfObjects.map(
+                        new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
+                            public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
+//                                pipe(future, actorSystem.getDispatcher());
+                                for (Object o : objects) {
+                                    boidInfoHashMap.put(((MessageBoidListenerReplyBoid) o).getSenderRef(), ((MessageBoidReplyModel) o).getBoidInfo());
+                                }
+                                return boidInfoHashMap;
+                            }
+                        },
+                        getContext().getDispatcher());
     }
 
 //    private Object selectAction(BoidMethod boidMethod, ) {
@@ -73,11 +117,13 @@ public class Boid extends AbstractActor {
 //    }
 
     Boid(ActorRef selfRef) {
+        this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class), "BoidInfoListener");
         this.selfRef = selfRef;
         this.position = getRandomPosition();
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
         this.isOpponent = false;
+        this.timeout = Timeout.create(Duration.ofMillis(50));
     }
 
     Boid(ActorRef selfRef, Vector2d position, boolean isOpponent) {
@@ -88,12 +134,7 @@ public class Boid extends AbstractActor {
         this.isOpponent = isOpponent;
     }
 
-    private void tellOthersWhereAmI() {
-        for (ActorRef actorRef: otherBoidsInfo.keySet())
-            actorRef.tell(new MessageBoidTellBoid(createBoidInfo()), selfRef);
-    }
-    private BoidInfo createBoidInfo()
-    {
+    private BoidInfo createBoidInfo() {
         return new BoidInfo(position, velocity, forces, getAngle(), isOpponent);
     }
 
@@ -141,15 +182,17 @@ public class Boid extends AbstractActor {
         return angle;
     }
 
-    private void applyAllRules(/*LinkedList<Boid> neighbours, */ArrayList<Obstacle> obstacles, double separationWeight, double cohesionWeight, double alignmentWeight, double opponentWeight, double obstacleRadius, double obstacleWeight, BordersAvoidanceFunction bordersAvoidanceFunction) {
-        LinkedList<BoidInfo> neighbours = findNeighbours();
-        this.separate(neighbours, separationWeight);
-        this.provideCohesion(neighbours, cohesionWeight);
-        this.align(neighbours, alignmentWeight);
-        this.avoidOpponents(neighbours, opponentWeight);
-        this.avoidObstacles(obstacles, obstacleRadius, obstacleWeight);
+    private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
+
+        findNeighbours(messageModelAskBoid.getNeighbours());
+        LinkedList<BoidInfo> boidInfoLinkedList = (LinkedList<BoidInfo>) boidInfoHashMap.values();
+        this.separate(boidInfoLinkedList, messageModelAskBoid.getSeparationWeight());
+        this.provideCohesion(boidInfoLinkedList, messageModelAskBoid.getCohesionWeight());
+        this.align(boidInfoLinkedList, messageModelAskBoid.getAlignmentWeight());
+        this.avoidOpponents(boidInfoLinkedList, messageModelAskBoid.getOpponentWeight());
+        this.avoidObstacles(messageModelAskBoid.getObstacles(), messageModelAskBoid.getObstacleRadius(), messageModelAskBoid.getOpponentWeight());
         this.moveToNewPosition();
-        this.avoidBorders(bordersAvoidanceFunction);
+        this.avoidBorders(messageModelAskBoid.getBordersAvoidanceFunction());
 //        System.out.println(bordersAvoidanceFunction.toString());
     }
 

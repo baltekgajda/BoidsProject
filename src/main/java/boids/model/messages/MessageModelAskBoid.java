@@ -31,4 +31,44 @@ public class MessageModelAskBoid {
         this.obstacleWeight = obstacleWeight;
         this.bordersAvoidanceFunction = bordersAvoidanceFunction;
     }
+
+    public ActorRef getSenderActorRef() {
+        return senderActorRef;
+    }
+
+    public ArrayList<ActorRef> getNeighbours() {
+        return neighbours;
+    }
+
+    public ArrayList<Obstacle> getObstacles() {
+        return obstacles;
+    }
+
+    public double getSeparationWeight() {
+        return separationWeight;
+    }
+
+    public double getCohesionWeight() {
+        return cohesionWeight;
+    }
+
+    public double getAlignmentWeight() {
+        return alignmentWeight;
+    }
+
+    public double getOpponentWeight() {
+        return opponentWeight;
+    }
+
+    public double getObstacleRadius() {
+        return obstacleRadius;
+    }
+
+    public double getObstacleWeight() {
+        return obstacleWeight;
+    }
+
+    public BordersAvoidanceFunction getBordersAvoidanceFunction() {
+        return bordersAvoidanceFunction;
+    }
 }

@@ -112,6 +112,9 @@ public class Model extends AbstractActor {
                         boidsActorSystem.getDispatcher());
 
 //        }
+        futureBoidsInfos.onComplete(v1 -> {
+            System.out.println(v1);
+        });
     }
     //function where all rules are added to a boid
     public void findNewBoidsPositions() {
