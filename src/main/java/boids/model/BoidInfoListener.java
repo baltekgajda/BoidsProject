@@ -12,7 +12,7 @@ import boids.model.messages.MessageBoidTellBoidListener;
 import java.util.HashMap;
 
 public class BoidInfoListener extends AbstractActor {
-    HashMap<ActorRef, BoidInfo> boidInfoHashMap;
+    HashMap<ActorRef, BoidInfo> boidInfoHashMap = new HashMap<>();
     @Override
     public Receive createReceive() {
         return new ReceiveBuilder()

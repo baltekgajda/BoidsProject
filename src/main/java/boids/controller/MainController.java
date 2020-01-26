@@ -42,7 +42,8 @@ public class MainController {
 
     private final static long animationRate = 20;  //TODO zmienic na mniesjze
     private static long animationRateStep = 10;
-    private ActorRef modelRef;
+    private ActorRef
+            modelRef;
     private View view;
     private Shape shape = new TriangleShape();
     private ActorSystem actorSystem;

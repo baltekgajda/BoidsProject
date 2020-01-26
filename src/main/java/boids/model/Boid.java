@@ -2,13 +2,14 @@ package boids.model;
 
 import akka.actor.*;
 import akka.dispatch.Mapper;
+import akka.pattern.PipeToSupport;
 import akka.util.Timeout;
 import boids.model.enums.BordersAvoidanceFunction;
 import boids.model.messages.*;
 import boids.view.View;
 import boids.view.shapes.Shape;
 import javafx.scene.paint.Color;
-import scala.collection.immutable.IndexedSeq;
+import scala.concurrent.Await;
 import scala.concurrent.Future;
 
 import javax.vecmath.Vector2d;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.concurrent.TimeoutException;
 
 //import akka.pattern.
 import static akka.dispatch.Futures.sequence;
@@ -57,6 +59,7 @@ public class Boid extends AbstractActor {
                     sender().tell(new MessageReplyBoidInfo(new BoidInfo(position, velocity, forces, getAngle(), isOpponent)), self());
                 })
                 .match(MessageModelAskBoid.class, messageModelAskBoid -> {
+                    fillBoidInfoHashMap(messageModelAskBoid);
                     boidInfoListenerRef.tell(new MessageBoidTellBoidListener(self(), createBoidInfo()), self());
                     MessageBoidReplyModel reply = new MessageBoidReplyModel(getSender(), createBoidInfo());
                     sender().tell(reply, self());
@@ -67,14 +70,17 @@ public class Boid extends AbstractActor {
 //                })
 //                .match(MesBo)
 //                .match(MessageAllBoidData.class, o -> {
-//                    //TODO implement getting data for all positions
 //                })
                 .build();
     }
 
+    private void fillBoidInfoHashMap(MessageModelAskBoid messageModelAskBoid) {
+        for (ActorRef actorRef : messageModelAskBoid.getNeighbours()) boidInfoHashMap.put(actorRef, null);
+    }
+
     @Override
     public void preStart(){
-
+        this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class), "BoidInfoListener");
     }
 
     private void sendToActorsChild(ActorRef actorRef) {
@@ -85,22 +91,54 @@ public class Boid extends AbstractActor {
 
     private Future<Object> askActorChild(ActorRef actorRef) {
         String path = actorRef.path().toString() + "/BoidInfoListener";
-        getContext().getSystem().actorSelection(path).tell(new MessageBoidTellBoidListener(getContext().getSelf(), createBoidInfo()), getContext().getSelf());
+//        getContext().getSystem().actorSelection(path).tell(new MessageBoidTellBoidListener(getContext().getSelf(), createBoidInfo()), getContext().getSelf());
+//        ActorPath listenpath = boidInfoListenerRef.path();
+//        ActorSelection actorSelection = getContext().getSystem().actorSelection(path);
+//        getContext().getSystem().
         return ask(getContext().getSystem().actorSelection(path), new MessageBoidAskBoidListener(), timeout);
 
     }
 
 
     private void findNeighbours(ArrayList<ActorRef> neighbours) {
-        Iterable<Future<Object>> futureArray = new ArrayList<>();
-        for (ActorRef neighbourRef : neighbours) {
+        if (neighbours.size() == 1){
+            ActorRef neighbourRef = neighbours.get(0);
             Future<Object> future = askActorChild(neighbourRef);
-            ((ArrayList<Future<Object>>) futureArray).add(future);
-            pipe(future, getContext().getDispatcher());
-        }
+            pipe(future, getContext().getSystem().getDispatcher());
 
-        Future<Iterable<Object>> futureListOfObjects = sequence(futureArray, getContext().getDispatcher());
-        Future<HashMap<ActorRef, BoidInfo>> futureBoidsInfos =
+            try {
+                Await.result(future, timeout.duration());
+            } catch (TimeoutException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+        else if(neighbours.size() > 0) {
+            Iterable<Future<Object>> futureArray = new ArrayList<>();
+
+            Iterable<PipeToSupport.PipeableFuture<Object>> futurePipeArray = new ArrayList<>();
+            for (ActorRef neighbourRef : neighbours) {
+                Future<Object> future = askActorChild(neighbourRef);
+                ((ArrayList<Future<Object>>) futureArray).add(future);
+                pipe(future, getContext().getSystem().getDispatcher());
+
+                try {
+                    Await.result(future, timeout.duration());
+                } catch (TimeoutException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+//                ((ArrayList<PipeToSupport.PipeableFuture<Object>>) futurePipeArray).add(pipe(future, getContext().getSystem().getDispatcher()));
+            }
+
+            Future<Iterable<Object>> futureListOfObjects = sequence(futureArray, getContext().getDispatcher());
+//            Future<Iterable<Object>> futurePipeListOfObjects = sequence(futurePipeArray, getContext().getDispatcher());
+
+            try {
+                Await.result(futureListOfObjects, timeout.duration());
                 futureListOfObjects.map(
                         new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
                             public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
@@ -112,7 +150,30 @@ public class Boid extends AbstractActor {
                             }
                         },
                         getContext().getDispatcher());
-    }
+            } catch (TimeoutException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
+//        Future<HashMap<ActorRef, BoidInfo>> futureBoidsInfos =
+//                futureListOfObjects.map(
+//                        new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
+//                            public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
+////                                pipe(future, actorSystem.getDispatcher());
+//                                for (Object o : objects) {
+//                                    boidInfoHashMap.put(((MessageBoidListenerReplyBoid) o).getSenderRef(), ((MessageBoidReplyModel) o).getBoidInfo());
+//                                }
+//                                return boidInfoHashMap;
+//                            }
+//                        },
+//                        getContext().getDispatcher());
+//        futureBoidsInfos.
+//    }
+
 
 //    private Object selectAction(BoidMethod boidMethod, ) {
 //        switch (boidMethod)
@@ -120,25 +181,24 @@ public class Boid extends AbstractActor {
 //            case APPLY_ALL_RULES:
 //                applyAllRules();
 //        }
-//    }
+    }
 
     Boid() {
         this.boidInfoHashMap = new HashMap<>();
-        this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class), "BoidInfoListener");
         this.position = getRandomPosition();
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
         this.isOpponent = false;
-        this.timeout = Timeout.create(Duration.ofMillis(50));
+        this.timeout = Timeout.create(Duration.ofMillis(5000));
     }
 
     Boid(Vector2d position, boolean isOpponent) {
         this.boidInfoHashMap = new HashMap<>();
-        this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class), "BoidInfoListener");
         this.position = position;
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
         this.isOpponent = isOpponent;
+        this.timeout = Timeout.create(Duration.ofMillis(5000));
     }
 
     private BoidInfo createBoidInfo() {
@@ -192,7 +252,7 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-        LinkedList<BoidInfo> boidInfoLinkedList = (LinkedList<BoidInfo>) boidInfoHashMap.values();
+        ArrayList<BoidInfo> boidInfoLinkedList = new ArrayList<> (boidInfoHashMap.values());
         this.separate(boidInfoLinkedList, messageModelAskBoid.getSeparationWeight());
         this.provideCohesion(boidInfoLinkedList, messageModelAskBoid.getCohesionWeight());
         this.align(boidInfoLinkedList, messageModelAskBoid.getAlignmentWeight());
@@ -211,7 +271,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides separation between boids
-    private void separate(LinkedList<BoidInfo> neighbours, double behaviourWeight) {
+    private void separate(ArrayList<BoidInfo> neighbours, double behaviourWeight) {
         Vector2d diff = new Vector2d();
         Vector2d sum = new Vector2d();
         double count = 0;
@@ -247,7 +307,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides cohesion between boids
-    private void provideCohesion(LinkedList<BoidInfo> neighbours, double behaviourWeight) {
+    private void provideCohesion(ArrayList<BoidInfo> neighbours, double behaviourWeight) {
         Vector2d sum = new Vector2d();
         double count = 0;
 
@@ -267,7 +327,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides alignment between boids
-    private void align(LinkedList<BoidInfo> neighbours, double behaviourWeight) {
+    private void align(ArrayList<BoidInfo> neighbours, double behaviourWeight) {
         Vector2d sum = new Vector2d();
         double count = 0;
 
@@ -291,7 +351,7 @@ public class Boid extends AbstractActor {
     }
 
     //function that provides opponent avoidance
-    private void avoidOpponents(LinkedList<BoidInfo> neighbours, double opponentWeight) {
+    private void avoidOpponents(ArrayList<BoidInfo> neighbours, double opponentWeight) {
         if (isOpponent) {
             return;
         }

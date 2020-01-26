@@ -274,6 +274,7 @@ public class Model extends AbstractActor {
     }
 
     private ArrayList<BoidInfo> getBoidInfos() {
+        //Niepotrzebna funkcja wystarczy zastąpić hashmap.values()
         ArrayList<BoidInfo> infos = new ArrayList<>();
         for (Map.Entry<ActorRef, BoidInfo> entry : boidInfos.entrySet()) {
             infos.add(entry.getValue());
