@@ -36,8 +36,7 @@ public class Boid extends AbstractActor {
     private Vector2d velocity;
     private Vector2d forces;
     private boolean isOpponent;
-    private HashMap<ActorRef, BoidInfo> boidInfoHashMap; //TODO implement getting this data
-    private ActorRef selfRef;
+    private HashMap<ActorRef, BoidInfo> boidInfoHashMap;
     private ActorRef boidInfoListenerRef;
 
 //    private
@@ -116,9 +115,9 @@ public class Boid extends AbstractActor {
 //        }
 //    }
 
-    Boid(ActorRef selfRef) {
+    Boid() {
+        this.boidInfoHashMap = new HashMap<>();
         this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class), "BoidInfoListener");
-        this.selfRef = selfRef;
         this.position = getRandomPosition();
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
@@ -126,8 +125,7 @@ public class Boid extends AbstractActor {
         this.timeout = Timeout.create(Duration.ofMillis(50));
     }
 
-    Boid(ActorRef selfRef, Vector2d position, boolean isOpponent) {
-        this.selfRef = selfRef;
+    Boid(Vector2d position, boolean isOpponent) {
         this.position = position;
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
