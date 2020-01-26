@@ -53,6 +53,9 @@ public class Boid extends AbstractActor {
 //
 //                .build();
         return receiveBuilder()
+                .match(MessageGetBoidInfo.class, o -> {
+                    sender().tell(new MessageReplyBoidInfo(new BoidInfo(position, velocity, forces, getAngle(), isOpponent)), self());
+                })
                 .match(MessageModelAskBoid.class, messageModelAskBoid -> {
                     boidInfoListenerRef.tell(new MessageBoidTellBoidListener(self(), createBoidInfo()), self());
                     MessageBoidReplyModel reply = new MessageBoidReplyModel(getSender(), createBoidInfo());

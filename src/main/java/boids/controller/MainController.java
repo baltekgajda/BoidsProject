@@ -2,8 +2,11 @@ package boids.controller;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import boids.model.Boid;
+import akka.actor.Props;
+import akka.pattern.Patterns;
+import akka.util.Timeout;
 import boids.model.BoidInfo;
+import boids.model.MainControllerActor;
 import boids.model.Model;
 import boids.model.Obstacle;
 import boids.model.messages.*;
@@ -24,17 +27,21 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
+import scala.concurrent.Await;
+import scala.concurrent.Future;
 
 import javax.vecmath.Vector2d;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class MainController {
 
-    private final static long animationRate = 20;
-    private static long animationRateStep = 10;
+    private final static long animationRate = 200;  //TODO zmienic na mniesjze
+    private static long animationRateStep = 100;
     private ActorRef modelRef;
     private View view;
     private Shape shape = new TriangleShape();
@@ -394,11 +401,26 @@ public class MainController {
     }
 
     private void draw(GraphicsContext gc) {
-        //TODO dodać ask do modelu i handler tam -> zwracający ArrayList<BoidInfo>, ArrayList<Obstacle>, boidsCount
         clearCanvas(gc);
-        setBoidsCount();
-//        drawBoids(gc);
-//        drawObstacles(gc);
+        ActorRef ref = actorSystem.actorOf(Props.create(MainControllerActor.class));
+        Timeout t = new Timeout(500, TimeUnit.MILLISECONDS);
+        Future<Object> fut = Patterns.ask(modelRef, new MessageGetDrawInfo(), t);
+        MessageReceiveDrawInfo response = null; //TODO co jak nie zdazy na czas jak timeout e
+        try {
+            response = (MessageReceiveDrawInfo) Await.result(fut, t.duration());
+        } catch (TimeoutException | InterruptedException e) {
+            e.printStackTrace();    //TODO co zrobic jak bedzie blad ze nie zdazyl
+            actorSystem.stop(ref);
+            return;
+        }
+
+        actorSystem.stop(ref);
+        if(response == null) {
+            return; //TODO
+        }
+        setBoidsCount(response.getBoidsCount());
+        drawBoids(gc, response.getBoidsInfo());
+        drawObstacles(gc, response.getObstacles());
     }
 
     private void clearCanvas(GraphicsContext gc) {
@@ -444,7 +466,7 @@ public class MainController {
             return false;
         }
 
-        modelRef.tell(new MessageAddObstacle(new Vector2d(event.getX(), event.getY()), obstacleSizeSlider.getValue()),null);
+        modelRef.tell(new MessageAddObstacle(new Vector2d(event.getX(), event.getY()), obstacleSizeSlider.getValue()), null);
         draw(canvas.getGraphicsContext2D());
         return true;
     }

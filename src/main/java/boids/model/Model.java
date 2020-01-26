@@ -40,7 +40,7 @@ public class Model extends AbstractActor {
 
     private ArrayList<Obstacle> obstacles;
     private HashMap<Pair<Integer, Integer>, LinkedList<ActorRef>> voxels;
-    private HashMap<ActorRef, BoidInfo> boidInfos;
+    private HashMap<ActorRef, BoidInfo> boidInfos = new HashMap<>();
     private boolean isTurningBackOnBordersEnabled;
     private BordersAvoidanceFunction bordersAvoidanceFunction;
     private int boidsCount;
@@ -53,11 +53,19 @@ public class Model extends AbstractActor {
     @Override
     public Receive createReceive() {
         return new ReceiveBuilder()
+                .match(MessageReplyBoidInfo.class, o -> {
+                    boidInfos.put(sender(), o.getBoidInfo());
+                })
+                .match(MessageGetDrawInfo.class, o -> {
+                    sender().tell(new MessageReceiveDrawInfo(getBoidInfos(), getObstacles(), boidsCount), self());
+                })
                 .match(MessageGenerateBoids.class, o -> {
                     generateBoids(o.getAmountToGenerate());
                 })
                 .match(MessageAddBoid.class, o -> {
+                    System.out.println("---------------");
                     addBoid(o.getPosition(), o.getOpponent());
+
                 })
                 .match(MessageRemoveBoidsAndObstacles.class, o -> {
                     removeBoids();
@@ -132,10 +140,6 @@ public class Model extends AbstractActor {
         return boidInfos.get(actorRef);
     }
 
-    private HashMap<ActorRef, BoidInfo> getBoidInfos() {
-        return boidInfos;
-    }
-
     private ArrayList<Obstacle> getObstacles() {
         return obstacles;
     }
@@ -155,13 +159,15 @@ public class Model extends AbstractActor {
             boidActorRef = boidsActorSystem.actorOf(Props.create(Boid.class, pos, isOpponent), "Boid-" + boidsCount);
         }
 
+        boidActorRef.tell(new MessageGetBoidInfo(), self());
         boidActorRefs.add(boidActorRef);
-        addToVoxel(boidActorRef);
+        //TODO nie mamy info o boidActor ref gdy jest losowo dodawany i potrzebujemy jego pozycji
+        addToVoxel(boidActorRef, pos);
     }
 
     //    private synchronized void addToVoxel(Boid boid) {
-    private synchronized void addToVoxel(ActorRef boidRef) {
-        Pair key = getVoxelKey(boidRef);
+    private synchronized void addToVoxel(ActorRef boidRef, Vector2d position) {
+        Pair key = getVoxelKey(boidRef, position);
         LinkedList<ActorRef> list = voxels.get(key);
         if (list != null) {
             list.add(boidRef);
@@ -173,8 +179,13 @@ public class Model extends AbstractActor {
         voxels.put(key, list);
     }
 
-    private Pair<Integer, Integer> getVoxelKey(ActorRef actorRef) {
-        Vector2d pos = boidInfos.get(actorRef).getPosition();
+    private Pair<Integer, Integer> getVoxelKey(ActorRef actorRef, Vector2d position) {
+        Vector2d pos;
+        if (position != null) {
+            pos = position;
+        } else {
+            pos = boidInfos.get(actorRef).getPosition();
+        }
         int x = (int) (pos.getX() / voxelSize);
         int y = (int) (pos.getY() / voxelSize);
 
@@ -193,7 +204,7 @@ public class Model extends AbstractActor {
     private void resetVoxels() {
         clearVoxels();
         for (ActorRef b : boidActorRefs) {
-            addToVoxel(b);
+            addToVoxel(b, null);
         }
     }
 
@@ -224,7 +235,7 @@ public class Model extends AbstractActor {
 
     private ArrayList<ActorRef> getBoidNeighbours(ActorRef actorRef) {
         ArrayList<ActorRef> neighbours = new ArrayList<>();
-        Pair<Integer, Integer> key = getVoxelKey(actorRef);
+        Pair<Integer, Integer> key = getVoxelKey(actorRef, null);
         int x = key.getKey();
         int y = key.getValue();
         int[] coordsX = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
@@ -259,6 +270,14 @@ public class Model extends AbstractActor {
     //TODO public?
     public static double getNeighbourhoodRadius() {
         return neighbourhoodRadius;
+    }
+
+    private ArrayList<BoidInfo> getBoidInfos() {
+        ArrayList<BoidInfo> infos = new ArrayList<>();
+        for (Map.Entry<ActorRef, BoidInfo> entry : boidInfos.entrySet()) {
+            infos.add(entry.getValue());
+        }
+        return infos;
     }
 }
 
