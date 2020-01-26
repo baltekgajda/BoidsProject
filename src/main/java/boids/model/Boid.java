@@ -118,7 +118,7 @@ public class Boid extends AbstractActor {
                             public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
                                 for (Object o : objects) {
-                                    boidInfoHashMap.put(((MessageBoidListenerReplyBoid) o).getSenderRef(), ((MessageBoidReplyModel) o).getBoidInfo());
+                                    boidInfoHashMap.put(((MessageBoidListenerReplyBoid) o).getSenderRef(), ((MessageBoidListenerReplyBoid) o).getBoidInfo());
                                 }
                                 return boidInfoHashMap;
                             }
