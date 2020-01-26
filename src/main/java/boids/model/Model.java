@@ -92,7 +92,7 @@ public class Model extends AbstractActor {
 
     public Model(ActorSystem actorSystem) {
         boidsActorSystem = actorSystem;
-        timeout = Timeout.create(Duration.ofMillis(50));
+        timeout = Timeout.create(Duration.ofMillis(50000));
         obstacles = new ArrayList<>();
         voxels = new HashMap<>();
         setAvoidBordersFunctionToTurningBack();
@@ -133,7 +133,7 @@ public class Model extends AbstractActor {
                                 public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
                                     for (Object o : objects) {
-                                        boidInfos.put(((MessageBoidReplyModel) o).getSenderActorRef(), ((MessageBoidReplyModel) o).getBoidInfo());
+                                        boidInfos.put(sender(), ((MessageBoidReplyModel) o).getBoidInfo());
                                     }
                                     return boidInfos;
                                 }
@@ -252,7 +252,8 @@ public class Model extends AbstractActor {
             for (ActorRef otherRef : voxelContent) {
                 BoidInfo checkedBoidInfo = boidInfos.get(actorRef);
                 BoidInfo otherBoidInfo = boidInfos.get(otherRef);
-                if(otherBoidInfo == null) {
+
+                if(otherBoidInfo == null || checkedBoidInfo.equals(otherBoidInfo)) {
                     continue;
                 }
                 double dist = checkedBoidInfo.getDistance(otherBoidInfo);

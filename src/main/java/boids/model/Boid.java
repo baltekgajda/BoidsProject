@@ -59,7 +59,7 @@ public class Boid extends AbstractActor {
                     sender().tell(new MessageReplyBoidInfo(new BoidInfo(position, velocity, forces, getAngle(), isOpponent)), self());
                 })
                 .match(MessageModelAskBoid.class, messageModelAskBoid -> {
-                    MessageBoidReplyModel reply = new MessageBoidReplyModel(getSender(), createBoidInfo());
+                    MessageBoidReplyModel reply = new MessageBoidReplyModel(self(), createBoidInfo());
                     sender().tell(reply, self());
 
                     fillBoidInfoHashMap(messageModelAskBoid);
@@ -119,7 +119,7 @@ public class Boid extends AbstractActor {
                             public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
                                 for (Object o : objects) {
-                                    boidInfoHashMap.put(((MessageBoidListenerReplyBoid) o).getSenderRef(), ((MessageBoidListenerReplyBoid) o).getBoidInfo());
+                                    boidInfoHashMap.put(sender(), ((MessageBoidListenerReplyBoid) o).getBoidInfo());
                                 }
                                 return boidInfoHashMap;
                             }
@@ -130,6 +130,8 @@ public class Boid extends AbstractActor {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            System.out.println("boidInfoHashMap:" + boidInfoHashMap.toString());
+
         }
 
 
@@ -163,7 +165,7 @@ public class Boid extends AbstractActor {
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
         this.isOpponent = false;
-        this.timeout = Timeout.create(Duration.ofMillis(5000));
+        this.timeout = Timeout.create(Duration.ofMillis(50000));
     }
 
     Boid(Vector2d position, boolean isOpponent) {
@@ -172,7 +174,7 @@ public class Boid extends AbstractActor {
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();
         this.isOpponent = isOpponent;
-        this.timeout = Timeout.create(Duration.ofMillis(5000));
+        this.timeout = Timeout.create(Duration.ofMillis(50000));
     }
 
     private BoidInfo createBoidInfo() {
@@ -226,11 +228,12 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
-        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
-        for(BoidInfo info: withNulls)
-            if(info != null)
-                boidInfoArrayList.add(info);
+        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
+//        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
+//        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
+//        for(BoidInfo info: withNulls)
+//            if(info != null)
+//                boidInfoArrayList.add(info);
         this.separate(boidInfoArrayList, messageModelAskBoid.getSeparationWeight());
         this.provideCohesion(boidInfoArrayList, messageModelAskBoid.getCohesionWeight());
         this.align(boidInfoArrayList, messageModelAskBoid.getAlignmentWeight());
