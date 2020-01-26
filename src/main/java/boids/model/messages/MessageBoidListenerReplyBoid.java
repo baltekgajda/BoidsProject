@@ -21,4 +21,12 @@ public class MessageBoidListenerReplyBoid {
     public ActorRef getBoidRef() {
         return boidRef;
     }
+
+    @Override
+    public String toString() {
+        return "MessageBoidListenerReplyBoid{" +
+                "boidRef=" + boidRef +
+                ", boidInfo=" + boidInfo +
+                '}';
+    }
 }

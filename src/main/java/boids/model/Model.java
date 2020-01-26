@@ -67,7 +67,7 @@ public class Model extends AbstractActor {
                     generateBoids(o.getAmountToGenerate());
                 })
                 .match(MessageAddBoid.class, o -> {
-                    System.out.println("---------------");
+//                    System.out.println("---------------");
                     addBoid(o.getPosition(), o.getOpponent());
 
                 })
@@ -260,7 +260,7 @@ public class Model extends AbstractActor {
                 try {
                     dist = checkedBoidInfo.getDistance(otherBoidInfo);
                 } catch (Exception e) {
-                    System.out.println("GET DISTANCE CRASHED");
+//                    System.out.println("GET DISTANCE CRASHED");
                     e.printStackTrace();
                 }
 

@@ -22,7 +22,7 @@ public class BoidInfoListener extends AbstractActor {
                     getSender().tell(new MessageBoidListenerReplyBoid(self(), selfBoidInfo), self());
                 })
                 .match(MessageBoidAskBoidListener.class, o ->{
-                    sender().tell(new MessageBoidListenerReplyBoid(boidRef, selfBoidInfo), self());
+                    getSender().tell(new MessageBoidListenerReplyBoid(boidRef, selfBoidInfo), self());
                 })
                 .build();
     }

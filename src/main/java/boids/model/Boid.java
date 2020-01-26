@@ -76,6 +76,7 @@ public class Boid extends AbstractActor {
     }
 
     private void fillBoidInfoHashMap(MessageModelAskBoid messageModelAskBoid) {
+        boidInfoHashMap.clear();
         for (ActorRef actorRef : messageModelAskBoid.getNeighbours()) boidInfoHashMap.put(actorRef, null);
     }
 
@@ -111,17 +112,22 @@ public class Boid extends AbstractActor {
             }
 
             Future<Iterable<Object>> futureListOfObjects = sequence(futureArray, getContext().getDispatcher());
-
+//            System.out.println("Before boidInfoHashMap:" + boidInfoHashMap.toString());
             try {
                 Await.result(futureListOfObjects, timeout.duration());
+
                 futureListOfObjects.map(
                         new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
                             public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
+                                HashMap<ActorRef, BoidInfo> retInfo = new HashMap<>();
                                 for (Object o : objects) {
+//                                    System.out.println("Object: " + ((MessageBoidListenerReplyBoid) o).toString());
                                     boidInfoHashMap.put(((MessageBoidListenerReplyBoid) o).getBoidRef(), ((MessageBoidListenerReplyBoid) o).getBoidInfo());
+                                    retInfo.put(((MessageBoidListenerReplyBoid) o).getBoidRef(), ((MessageBoidListenerReplyBoid) o).getBoidInfo());
+
                                 }
-                                return boidInfoHashMap;
+                                return retInfo;
                             }
                         },
                         getContext().getDispatcher());
@@ -130,7 +136,7 @@ public class Boid extends AbstractActor {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            System.out.println("boidInfoHashMap:" + boidInfoHashMap.toString());
+//            System.out.println("After boidInfoHashMap:" + boidInfoHashMap.toString());
 
         }
 
@@ -228,12 +234,12 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
-//        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
-//        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
-//        for(BoidInfo info: withNulls)
-//            if(info != null)
-//                boidInfoArrayList.add(info);
+//        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
+        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
+        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
+        for(BoidInfo info: withNulls)
+            if(info != null)
+                boidInfoArrayList.add(info);
         this.separate(boidInfoArrayList, messageModelAskBoid.getSeparationWeight());
         this.provideCohesion(boidInfoArrayList, messageModelAskBoid.getCohesionWeight());
         this.align(boidInfoArrayList, messageModelAskBoid.getAlignmentWeight());
@@ -264,8 +270,8 @@ public class Boid extends AbstractActor {
                     continue;
                 }
             } catch (Exception e) {
-                System.out.println("neighbours: " + neighbours.toString());
-                e.printStackTrace();
+//                System.out.println("neighbours: " + neighbours.toString() + "\n" + e.getMessage());
+//                e.printStackTrace();
             }
 
             diff.sub(this.position, other.getPosition());
