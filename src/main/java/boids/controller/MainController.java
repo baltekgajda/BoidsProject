@@ -141,7 +141,7 @@ public class MainController {
         stopAnimation();
         modelRef.tell(new MessageGenerateBoids((int) boidsCountSlider.getValue()), null);
         if (pauseButton.isSelected()) {
-            drawObstacles(canvas.getGraphicsContext2D());
+            //TODO drawObstacles(canvas.getGraphicsContext2D());
             return;
         }
 
@@ -397,8 +397,8 @@ public class MainController {
         //TODO dodać ask do modelu i handler tam -> zwracający ArrayList<BoidInfo>, ArrayList<Obstacle>, boidsCount
         clearCanvas(gc);
         setBoidsCount();
-        drawBoids(gc);
-        drawObstacles(gc);
+//        drawBoids(gc);
+//        drawObstacles(gc);
     }
 
     private void clearCanvas(GraphicsContext gc) {

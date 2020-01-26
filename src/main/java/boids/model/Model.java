@@ -4,12 +4,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-
-import static akka.dispatch.Futures.future;
-import static akka.dispatch.Futures.sequence;
-import static akka.pattern.Patterns.ask;
-import static akka.pattern.Patterns.pipe;
-
 import akka.dispatch.Mapper;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.Timeout;
@@ -25,6 +19,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+
+import static akka.dispatch.Futures.sequence;
+import static akka.pattern.Patterns.ask;
+import static akka.pattern.Patterns.pipe;
 
 public class Model extends AbstractActor {
     public static double obstacleRadius = 15.0;
@@ -49,7 +47,6 @@ public class Model extends AbstractActor {
     private ArrayList<ActorRef> boidActorRefs = new ArrayList<>();
     private Map<ActorRef, ActorRef> boidListenerRefs = new HashMap<>();
     private ActorSystem boidsActorSystem;
-    private ActorRef modelActorRef;
     private Timeout timeout;
 
 
@@ -83,7 +80,6 @@ public class Model extends AbstractActor {
 
     public Model(ActorSystem actorSystem) {
         boidsActorSystem = actorSystem;
-        modelActorRef = boidsActorSystem.actorOf(Props.create(Model.class), "modelActor");
         timeout = Timeout.create(Duration.ofMillis(50));
         obstacles = new ArrayList<>();
         voxels = new HashMap<>();
@@ -101,7 +97,7 @@ public class Model extends AbstractActor {
         return voxelSize;
     }
 
-    public void askBoidsForPosition() {
+    private void askBoidsForPosition() {
         Iterable<Future<Object>> futureArray = new ArrayList<>();
         for (ActorRef boidRef : boidActorRefs) {
             ArrayList<ActorRef> neighbours = getBoidNeighbours(boidRef);
@@ -132,25 +128,25 @@ public class Model extends AbstractActor {
         resetVoxels();
     }
 
-    public BoidInfo getBoidInfo(ActorRef actorRef) {
+    private BoidInfo getBoidInfo(ActorRef actorRef) {
         return boidInfos.get(actorRef);
     }
 
-    public HashMap<ActorRef, BoidInfo> getBoidInfos() {
+    private HashMap<ActorRef, BoidInfo> getBoidInfos() {
         return boidInfos;
     }
 
-    public ArrayList<Obstacle> getObstacles() {
+    private ArrayList<Obstacle> getObstacles() {
         return obstacles;
     }
 
-    public void generateBoids(int count) {
+    private void generateBoids(int count) {
         for (int i = 0; i < count; i++) {
             addBoid(null, false);
         }
     }
 
-    public void addBoid(Vector2d pos, boolean isOpponent) {
+    private void addBoid(Vector2d pos, boolean isOpponent) {
         ActorRef boidActorRef;
         boidsCount++;
         if (pos == null) {
@@ -205,11 +201,11 @@ public class Model extends AbstractActor {
         voxels = new HashMap<>();
     }
 
-    public void addObstacle(Vector2d pos, double radius) {
+    private void addObstacle(Vector2d pos, double radius) {
         obstacles.add(new Obstacle(pos, radius));
     }
 
-    public void removeBoids() {
+    private void removeBoids() {
         boidsCount = 0;
         boidInfos = new HashMap<>();
         boidActorRefs = new ArrayList<>();
@@ -218,11 +214,11 @@ public class Model extends AbstractActor {
         clearVoxels();
     }
 
-    public void removeObstacles() {
+    private void removeObstacles() {
         obstacles = new ArrayList<>();
     }
 
-    public int getBoidsCount() {
+    private int getBoidsCount() {
         return boidsCount;
     }
 
@@ -250,26 +246,19 @@ public class Model extends AbstractActor {
         return neighbours;
     }
 
-    public void setAvoidBordersFunctionToFolding() {
+    private void setAvoidBordersFunctionToFolding() {
         isTurningBackOnBordersEnabled = false;
         bordersAvoidanceFunction = BordersAvoidanceFunction.FOLD_ON_BORDERS;
     }
 
-    public void setAvoidBordersFunctionToTurningBack() {
+    private void setAvoidBordersFunctionToTurningBack() {
         isTurningBackOnBordersEnabled = true;
         bordersAvoidanceFunction = BordersAvoidanceFunction.TURN_BACK_ON_BORDERS;
     }
 
+    //TODO public?
     public static double getNeighbourhoodRadius() {
         return neighbourhoodRadius;
-    }
-
-    public ArrayList<ActorRef> getBoidActorRefs() {
-        return boidActorRefs;
-    }
-
-    public ActorRef getModelActorRef() {
-        return modelActorRef;
     }
 }
 

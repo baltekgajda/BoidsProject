@@ -20,7 +20,8 @@ public class BoidInfoListener extends AbstractActor {
                     boidInfoHashMap.put(getSender(), o.getBoidInfo());
                 })
                 .match(MessageBoidAskSelfBoidInfoListener.class, o ->{
-                    getSender().tell(new MessageBoidListenerReplyBoid(boidInfoHashMap), self());
+                    //TODO self() jak chcesz swojego refa podać?
+                    getSender().tell(new MessageBoidListenerReplyBoid(boidInfoHashMap,self()), self());
                 })
                 .build();
     }
