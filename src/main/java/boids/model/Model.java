@@ -11,6 +11,7 @@ import boids.model.enums.BordersAvoidanceFunction;
 import boids.model.messages.*;
 import boids.view.View;
 import javafx.util.Pair;
+import scala.concurrent.Await;
 import scala.concurrent.Future;
 
 import javax.vecmath.Vector2d;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static akka.dispatch.Futures.sequence;
 import static akka.pattern.Patterns.ask;
@@ -45,7 +47,6 @@ public class Model extends AbstractActor {
     private BordersAvoidanceFunction bordersAvoidanceFunction;
     private int boidsCount;
     private ArrayList<ActorRef> boidActorRefs = new ArrayList<>();
-    private Map<ActorRef, ActorRef> boidListenerRefs = new HashMap<>();
     private ActorSystem boidsActorSystem;
     private Timeout timeout;
 
@@ -123,18 +124,27 @@ public class Model extends AbstractActor {
         }
 
         Future<Iterable<Object>> futureListOfObjects = sequence(futureArray, boidsActorSystem.dispatcher());
-        Future<HashMap<ActorRef, BoidInfo>> futureBoidsInfos =
-                futureListOfObjects.map(
-                        new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
-                            public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
+
+        try {
+            Await.result(futureListOfObjects, timeout.duration());
+            Future<HashMap<ActorRef, BoidInfo>> futureBoidsInfos =
+                    futureListOfObjects.map(
+                            new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
+                                public HashMap<ActorRef, BoidInfo> apply(Iterable<Object> objects) {
 //                                pipe(future, actorSystem.getDispatcher());
-                                for (Object o : objects) {
-                                    boidInfos.put(((MessageBoidReplyModel) o).getSenderActorRef(), ((MessageBoidReplyModel) o).getBoidInfo());
+                                    for (Object o : objects) {
+                                        boidInfos.put(((MessageBoidReplyModel) o).getSenderActorRef(), ((MessageBoidReplyModel) o).getBoidInfo());
+                                    }
+                                    return boidInfos;
                                 }
-                                return boidInfos;
-                            }
-                        },
-                        boidsActorSystem.getDispatcher());
+                            },
+                            boidsActorSystem.getDispatcher());
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
 
         resetVoxels();
     }
@@ -217,7 +227,6 @@ public class Model extends AbstractActor {
         boidsCount = 0;
         boidInfos = new HashMap<>();
         boidActorRefs = new ArrayList<>();
-        boidListenerRefs = new HashMap<>();
         //TODO usun wszystkich agentow
         clearVoxels();
     }
