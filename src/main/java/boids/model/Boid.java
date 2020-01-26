@@ -101,41 +101,15 @@ public class Boid extends AbstractActor {
 
 
     private void findNeighbours(ArrayList<ActorRef> neighbours) {
-        if (neighbours.size() == 1){
-            ActorRef neighbourRef = neighbours.get(0);
-            Future<Object> future = askActorChild(neighbourRef);
-            pipe(future, getContext().getSystem().getDispatcher());
-
-            try {
-                Await.result(future, timeout.duration());
-            } catch (TimeoutException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-        }
-        else if(neighbours.size() > 0) {
+        if(neighbours.size() > 0) {
             Iterable<Future<Object>> futureArray = new ArrayList<>();
-
-            Iterable<PipeToSupport.PipeableFuture<Object>> futurePipeArray = new ArrayList<>();
             for (ActorRef neighbourRef : neighbours) {
                 Future<Object> future = askActorChild(neighbourRef);
                 ((ArrayList<Future<Object>>) futureArray).add(future);
                 pipe(future, getContext().getSystem().getDispatcher());
-
-                try {
-                    Await.result(future, timeout.duration());
-                } catch (TimeoutException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-//                ((ArrayList<PipeToSupport.PipeableFuture<Object>>) futurePipeArray).add(pipe(future, getContext().getSystem().getDispatcher()));
             }
 
             Future<Iterable<Object>> futureListOfObjects = sequence(futureArray, getContext().getDispatcher());
-//            Future<Iterable<Object>> futurePipeListOfObjects = sequence(futurePipeArray, getContext().getDispatcher());
 
             try {
                 Await.result(futureListOfObjects, timeout.duration());

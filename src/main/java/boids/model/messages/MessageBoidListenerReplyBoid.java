@@ -6,16 +6,16 @@ import boids.model.BoidInfo;
 import java.util.HashMap;
 
 public class MessageBoidListenerReplyBoid {
-    HashMap<ActorRef, BoidInfo> boidInfoHashMap;
     ActorRef senderRef;
+    BoidInfo boidInfo;
 
-    public MessageBoidListenerReplyBoid(HashMap<ActorRef, BoidInfo> boidInfoHashMap, ActorRef senderRef) {
-        this.boidInfoHashMap = boidInfoHashMap;
+    public MessageBoidListenerReplyBoid(ActorRef senderRef, BoidInfo boidInfo) {
         this.senderRef = senderRef;
+        this.boidInfo = boidInfo;
     }
 
-    public HashMap<ActorRef, BoidInfo> getBoidInfoHashMap() {
-        return boidInfoHashMap;
+    public BoidInfo getBoidInfo() {
+        return boidInfo;
     }
 
     public ActorRef getSenderRef() {

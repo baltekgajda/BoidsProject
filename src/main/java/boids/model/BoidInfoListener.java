@@ -4,24 +4,24 @@ import akka.actor.AbstractActor;
 import akka.actor.Actor;
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
-import boids.model.messages.MessageBoidAskSelfBoidInfoListener;
-import boids.model.messages.MessageBoidListenerReplyBoid;
-import boids.model.messages.MessageBoidReplyModel;
-import boids.model.messages.MessageBoidTellBoidListener;
+import boids.model.messages.*;
 
 import java.util.HashMap;
 
 public class BoidInfoListener extends AbstractActor {
     HashMap<ActorRef, BoidInfo> boidInfoHashMap = new HashMap<>();
+    BoidInfo selfBoidInfo;
     @Override
     public Receive createReceive() {
         return new ReceiveBuilder()
                 .match(MessageBoidTellBoidListener.class, o ->{
-                    boidInfoHashMap.put(getSender(), o.getBoidInfo());
+                    selfBoidInfo = o.getBoidInfo();
                 })
                 .match(MessageBoidAskSelfBoidInfoListener.class, o ->{
-                    //TODO self() jak chcesz swojego refa podać?
-                    getSender().tell(new MessageBoidListenerReplyBoid(boidInfoHashMap,self()), self());
+                    getSender().tell(new MessageBoidListenerReplyBoid(self(), selfBoidInfo), self());
+                })
+                .match(MessageBoidAskBoidListener.class, o ->{
+                    sender().tell(new MessageBoidListenerReplyBoid(self(), selfBoidInfo), self());
                 })
                 .build();
     }
