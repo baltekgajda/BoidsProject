@@ -38,7 +38,13 @@ public class BoidInfo {
 
     public double getDistance(BoidInfo boidInfo) {
         Vector2d dist = new Vector2d();
-        dist.sub(this.position, boidInfo.getPosition());
+        try {
+            dist.sub(this.position, boidInfo.getPosition());
+        } catch (Exception e) {
+            System.out.println("position: " + this.position);
+            e.printStackTrace();
+            throw e;
+        }
         return dist.length();
     }
 

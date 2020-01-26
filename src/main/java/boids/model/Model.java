@@ -185,8 +185,17 @@ public class Model extends AbstractActor {
         if (position != null) {
             pos = position;
         } else {
-            System.out.println(boidInfos.toString());
-            pos = boidInfos.get(actorRef).getPosition();
+//            System.out.println(boidInfos.toString());
+            try {
+
+                pos = boidInfos.get(actorRef).getPosition();
+            } catch (Exception e)
+            {
+                System.out.println("actorRef = [" + actorRef + "], position = [" + position + "]");
+                e.printStackTrace();
+                throw e;
+            }
+
         }
         int x = (int) (pos.getX() / voxelSize);
         int y = (int) (pos.getY() / voxelSize);

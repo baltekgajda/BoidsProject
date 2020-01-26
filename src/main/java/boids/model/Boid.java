@@ -132,7 +132,6 @@ public class Boid extends AbstractActor {
         }
 
 
-
 //        Future<HashMap<ActorRef, BoidInfo>> futureBoidsInfos =
 //                futureListOfObjects.map(
 //                        new Mapper<Iterable<Object>, HashMap<ActorRef, BoidInfo>>() {
@@ -208,11 +207,11 @@ public class Boid extends AbstractActor {
         return null;
     }
 
-    private double getDistance(Boid boid) {
-        Vector2d dist = new Vector2d();
-        dist.sub(this.position, boid.getPosition());
-        return dist.length();
-    }
+//    private double getDistance(Boid boid) {
+//        Vector2d dist = new Vector2d();
+//        dist.sub(this.position, boid.getPosition());
+//        return dist.length();
+//    }
 
     private double getAngle() {
         double angle = velocity.angle(Shape.rotationVector);
@@ -226,11 +225,11 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-        ArrayList<BoidInfo> boidInfoLinkedList = new ArrayList<> (boidInfoHashMap.values());
-        this.separate(boidInfoLinkedList, messageModelAskBoid.getSeparationWeight());
-        this.provideCohesion(boidInfoLinkedList, messageModelAskBoid.getCohesionWeight());
-        this.align(boidInfoLinkedList, messageModelAskBoid.getAlignmentWeight());
-        this.avoidOpponents(boidInfoLinkedList, messageModelAskBoid.getOpponentWeight());
+        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
+        this.separate(boidInfoArrayList, messageModelAskBoid.getSeparationWeight());
+        this.provideCohesion(boidInfoArrayList, messageModelAskBoid.getCohesionWeight());
+        this.align(boidInfoArrayList, messageModelAskBoid.getAlignmentWeight());
+        this.avoidOpponents(boidInfoArrayList, messageModelAskBoid.getOpponentWeight());
         this.avoidObstacles(messageModelAskBoid.getObstacles(), messageModelAskBoid.getObstacleRadius(), messageModelAskBoid.getOpponentWeight());
         this.moveToNewPosition();
         this.avoidBorders(messageModelAskBoid.getBordersAvoidanceFunction());
