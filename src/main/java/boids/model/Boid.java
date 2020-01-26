@@ -59,7 +59,6 @@ public class Boid extends AbstractActor {
                 .match(MessageModelAskBoid.class, messageModelAskBoid -> {
                     boidInfoListenerRef.tell(new MessageBoidTellBoidListener(self(), createBoidInfo()), self());
                     MessageBoidReplyModel reply = new MessageBoidReplyModel(getSender(), createBoidInfo());
-                    getContext().actorOf(Props.create(BoidInfoListener.class, createBoidInfo()));
                     sender().tell(reply, self());
                     applyAllRules(messageModelAskBoid);
                 })
@@ -71,6 +70,11 @@ public class Boid extends AbstractActor {
 //                    //TODO implement getting data for all positions
 //                })
                 .build();
+    }
+
+    @Override
+    public void preStart(){
+
     }
 
     private void sendToActorsChild(ActorRef actorRef) {
@@ -129,6 +133,8 @@ public class Boid extends AbstractActor {
     }
 
     Boid(Vector2d position, boolean isOpponent) {
+        this.boidInfoHashMap = new HashMap<>();
+        this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class), "BoidInfoListener");
         this.position = position;
         this.velocity = getRandomVelocity();
         this.forces = new Vector2d();

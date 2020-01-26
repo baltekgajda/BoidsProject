@@ -245,7 +245,7 @@ public class Model extends AbstractActor {
             LinkedList<ActorRef> voxelContent = voxels.get(new Pair<>(x + coordsX[i], y + coordsY[i]));
             if (voxelContent == null) continue;
             for (ActorRef otherRef : voxelContent) {
-                BoidInfo checkedBoidInfo = boidInfos.get(key);
+                BoidInfo checkedBoidInfo = boidInfos.get(actorRef);
                 BoidInfo otherBoidInfo = boidInfos.get(otherRef);
                 double dist = checkedBoidInfo.getDistance(otherBoidInfo);
 
