@@ -14,8 +14,7 @@ import akka.dispatch.Mapper;
 import akka.japi.pf.ReceiveBuilder;
 import akka.util.Timeout;
 import boids.model.enums.BordersAvoidanceFunction;
-import boids.model.messages.MessageModelAskBoid;
-import boids.model.messages.MessageBoidReplyModel;
+import boids.model.messages.*;
 import boids.view.View;
 import javafx.util.Pair;
 import scala.concurrent.Future;
@@ -57,14 +56,33 @@ public class Model extends AbstractActor {
     @Override
     public Receive createReceive() {
         return new ReceiveBuilder()
-                .matchAny(o -> {
-                    System.out.println(o.toString());
+                .match(MessageGenerateBoids.class, o -> {
+                    generateBoids(o.getAmountToGenerate());
+                })
+                .match(MessageAddBoid.class, o -> {
+                    addBoid(o.getPosition(), o.getOpponent());
+                })
+                .match(MessageRemoveBoidsAndObstacles.class, o -> {
+                    removeBoids();
+                    removeObstacles();
+                })
+                .match(MessageSetAvoidance.class, o -> {
+                    if (o.isAvoidanceFolding())
+                        setAvoidBordersFunctionToFolding();
+                    else
+                        setAvoidBordersFunctionToTurningBack();
+                })
+                .match(MessageAddObstacle.class, o -> {
+                    addObstacle(o.getPosition(), o.getRadius());
+                })
+                .match(MessageGetBoidsCount.class, o -> {
+                    //TODO
                 })
                 .build();
     }
 
-    public Model() {
-        boidsActorSystem = ActorSystem.create("boids-simulation");
+    public Model(ActorSystem actorSystem) {
+        boidsActorSystem = actorSystem;
         modelActorRef = boidsActorSystem.actorOf(Props.create(Model.class), "modelActor");
         timeout = Timeout.create(Duration.ofMillis(50));
         obstacles = new ArrayList<>();
@@ -248,6 +266,10 @@ public class Model extends AbstractActor {
 
     public ArrayList<ActorRef> getBoidActorRefs() {
         return boidActorRefs;
+    }
+
+    public ActorRef getModelActorRef() {
+        return modelActorRef;
     }
 }
 

@@ -1,10 +1,12 @@
 package boids.controller;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import boids.model.Boid;
 import boids.model.BoidInfo;
 import boids.model.Model;
 import boids.model.Obstacle;
+import boids.model.messages.*;
 import boids.view.View;
 import boids.view.shapes.CircleShape;
 import boids.view.shapes.Shape;
@@ -26,15 +28,17 @@ import javafx.util.Duration;
 import javax.vecmath.Vector2d;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainController {
 
     private final static long animationRate = 20;
     private static long animationRateStep = 10;
-    private Model model;
+    private ActorRef modelRef;
     private View view;
     private Shape shape = new TriangleShape();
+    private ActorSystem actorSystem;
     @FXML
     private Canvas canvas;
     @FXML
@@ -117,23 +121,25 @@ public class MainController {
 
     @FXML
     private void changeShape() {
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        if (shapeChanger.isSelected()) {
-            view.setImageView(shapeChangerImage, "circleShape.png");
-            shape = new CircleShape();
-            drawBoids(gc);
-            return;
-        }
-
-        view.setImageView(shapeChangerImage, "triangleShape.png");
-        shape = new TriangleShape();
-        drawBoids(gc);
+        //TODO dodac aska na drawBoids samo ale chyba to usunę
+//        GraphicsContext gc = canvas.getGraphicsContext2D();
+//        if (shapeChanger.isSelected()) {
+//            view.setImageView(shapeChangerImage, "circleShape.png");
+//            shape = new CircleShape();
+//            drawBoids(gc);
+//            return;
+//        }
+//
+//        view.setImageView(shapeChangerImage, "triangleShape.png");
+//        shape = new TriangleShape();
+//        drawBoids(gc);
     }
 
     @FXML
     private void startBoids() {
+        //TODO ask na rysowanie obstacles?
         stopAnimation();
-        model.generateBoids((int) boidsCountSlider.getValue());
+        modelRef.tell(new MessageGenerateBoids((int) boidsCountSlider.getValue()), null);
         if (pauseButton.isSelected()) {
             drawObstacles(canvas.getGraphicsContext2D());
             return;
@@ -141,6 +147,7 @@ public class MainController {
 
         runAnimation();
     }
+
 
     private void runAnimation() {
         animationTimeline.play();
@@ -159,8 +166,7 @@ public class MainController {
     @FXML
     private void stopAnimation() {
         animationTimeline.stop();
-        model.removeBoids();
-        model.removeObstacles();
+        modelRef.tell(new MessageRemoveBoidsAndObstacles(), null);
         setBoidsCount();
         clearCanvas(canvas.getGraphicsContext2D());
     }
@@ -189,24 +195,24 @@ public class MainController {
     private void changeEdgeHandlingToFolding() {
         if (edgeFoldingButton.isSelected()) {
             edgeTurningBackButton.setSelected(false);
-            model.setAvoidBordersFunctionToFolding();
+            modelRef.tell(new MessageSetAvoidance(false, true), null);
             return;
         }
 
         edgeTurningBackButton.setSelected(true);
-        model.setAvoidBordersFunctionToTurningBack();
+        modelRef.tell(new MessageSetAvoidance(true, false), null);
     }
 
     @FXML
     private void changeEdgeHandlingToTurningBack() {
         if (edgeTurningBackButton.isSelected()) {
             edgeFoldingButton.setSelected(false);
-            model.setAvoidBordersFunctionToTurningBack();
+            modelRef.tell(new MessageSetAvoidance(true, false), null);
             return;
         }
 
         edgeFoldingButton.setSelected(true);
-        model.setAvoidBordersFunctionToFolding();
+        modelRef.tell(new MessageSetAvoidance(false, true), null);
     }
 
     @FXML
@@ -355,11 +361,7 @@ public class MainController {
 
     private void performAnimationStep(GraphicsContext gc) {
         long startTime = System.currentTimeMillis();
-        clearCanvas(gc);
-        drawBoids(gc);
-        drawObstacles(gc);
-        model.sendInfoToBoids();
-        model.findNewBoidsPositions();
+        draw(gc);
         long estimatedTime = System.currentTimeMillis() - startTime;
         long animationCurrentRate = (long) animationTimeline.getKeyFrames().get(1).getTime().toMillis();
         long modulus = estimatedTime % animationRateStep;
@@ -372,10 +374,8 @@ public class MainController {
         runAnimation();
     }
 
-    private void drawBoids(GraphicsContext gc) {
-        setBoidsCount();
-        for (ActorRef actorRef : model.getBoidActorRefs()) {
-            BoidInfo boidInfo = model.getBoidInfo(actorRef);
+    private void drawBoids(GraphicsContext gc, ArrayList<BoidInfo> boidsInfos) {
+        for (BoidInfo boidInfo : boidsInfos) {
             shape.drawShape(gc, boidInfo.getPosition(), boidInfo.getAngle(), boidInfo.createColor());
             if (enableNeighbourhoodRadiusButton.isSelected()) {
                 shape.drawNeighbourhoodRadius(gc, boidInfo.getPosition());
@@ -386,11 +386,19 @@ public class MainController {
         }
     }
 
-    private void drawObstacles(GraphicsContext gc) {
+    private void drawObstacles(GraphicsContext gc, ArrayList<Obstacle> obstacles) {
         CircleShape circle = new CircleShape();
-        for (Obstacle o : model.getObstacles()) {
+        for (Obstacle o : obstacles) {
             circle.drawShape(gc, o.getPosition(), Color.GAINSBORO, o.getRadius());
         }
+    }
+
+    private void draw(GraphicsContext gc) {
+        //TODO dodać ask do modelu i handler tam -> zwracający ArrayList<BoidInfo>, ArrayList<Obstacle>, boidsCount
+        clearCanvas(gc);
+        setBoidsCount();
+        drawBoids(gc);
+        drawObstacles(gc);
     }
 
     private void clearCanvas(GraphicsContext gc) {
@@ -401,8 +409,8 @@ public class MainController {
         this.view = view;
     }
 
-    public void setModel(Model model) {
-        this.model = model;
+    public void setModel(ActorRef ref) {
+        this.modelRef = ref;
         setCanvasEventHandlers();
     }
 
@@ -425,12 +433,9 @@ public class MainController {
     }
 
     private boolean addBoidEventHandler(MouseEvent event) {
-        model.addBoid(new Vector2d(event.getX(), event.getY()), enableOpponentsButton.isSelected());
+        modelRef.tell(new MessageAddBoid(new Vector2d(event.getX(), event.getY()), enableOpponentsButton.isSelected()), null);
         if (!pauseButton.isSelected()) return false;
-
-        clearCanvas(canvas.getGraphicsContext2D());
-        drawObstacles(canvas.getGraphicsContext2D());
-        drawBoids(canvas.getGraphicsContext2D());
+        draw(canvas.getGraphicsContext2D());
         return true;
     }
 
@@ -439,14 +444,21 @@ public class MainController {
             return false;
         }
 
-        model.addObstacle(new Vector2d(event.getX(), event.getY()), obstacleSizeSlider.getValue());
-        clearCanvas(canvas.getGraphicsContext2D());
-        drawObstacles(canvas.getGraphicsContext2D());
-        drawBoids(canvas.getGraphicsContext2D());
+        modelRef.tell(new MessageAddObstacle(new Vector2d(event.getX(), event.getY()), obstacleSizeSlider.getValue()),null);
+        draw(canvas.getGraphicsContext2D());
         return true;
     }
 
     private void setBoidsCount() {
-        boidsCount.setText(Integer.toString(model.getBoidsCount()));
+        //TODO dodac message get boids cont ask
+        //boidsCount.setText(Integer.toString(model.getBoidsCount()));
+    }
+
+    private void setBoidsCount(int count) {
+        boidsCount.setText(Integer.toString(count));
+    }
+
+    public void setActorSystem(ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
     }
 }
