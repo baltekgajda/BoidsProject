@@ -1,8 +1,9 @@
 package boids.model;
 
-import akka.actor.*;
+import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.dispatch.Mapper;
-import akka.pattern.PipeToSupport;
 import akka.util.Timeout;
 import boids.model.enums.BordersAvoidanceFunction;
 import boids.model.messages.*;
@@ -16,14 +17,14 @@ import javax.vecmath.Vector2d;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
-//import akka.pattern.
 import static akka.dispatch.Futures.sequence;
 import static akka.pattern.Patterns.ask;
 import static akka.pattern.Patterns.pipe;
+
+//import akka.pattern.
 
 
 public class Boid extends AbstractActor {
@@ -63,6 +64,9 @@ public class Boid extends AbstractActor {
                     sender().tell(reply, self());
 
                     fillBoidInfoHashMap(messageModelAskBoid);
+                    separationRadius = messageModelAskBoid.getSeparationRadius();
+                    maxForce = messageModelAskBoid.getMaxForce();
+                    maxSpeed = messageModelAskBoid.getMaxSpeed();
                     boidInfoListenerRef.tell(new MessageBoidTellBoidListener(self(), createBoidInfo()), self());
                     applyAllRules(messageModelAskBoid);
                 })
@@ -80,7 +84,7 @@ public class Boid extends AbstractActor {
     }
 
     @Override
-    public void preStart(){
+    public void preStart() {
         this.boidInfoListenerRef = getContext().actorOf(Props.create(BoidInfoListener.class, self()), "BoidInfoListener");
     }
 
@@ -98,7 +102,7 @@ public class Boid extends AbstractActor {
 
 
     private void findNeighbours(ArrayList<ActorRef> neighbours) {
-        if(neighbours.size() > 0) {
+        if (neighbours.size() > 0) {
             Iterable<Future<Object>> futureArray = new ArrayList<>();
             for (ActorRef neighbourRef : neighbours) {
                 Future<Object> future = askActorChild(neighbourRef);
@@ -223,19 +227,18 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
+        ArrayList<BoidInfo> withNulls = new ArrayList<>(boidInfoHashMap.values());
         ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
-        for(BoidInfo info: withNulls)
-            if(info != null)
+        for (BoidInfo info : withNulls)
+            if (info != null)
                 boidInfoArrayList.add(info);
+        this.avoidObstacles(messageModelAskBoid.getObstacles(), messageModelAskBoid.getObstacleRadius(), messageModelAskBoid.getOpponentWeight());
+        this.avoidBorders(messageModelAskBoid.getBordersAvoidanceFunction());
         this.separate(boidInfoArrayList, messageModelAskBoid.getSeparationWeight());
-        System.out.println(messageModelAskBoid.getSeparationWeight());
         this.provideCohesion(boidInfoArrayList, messageModelAskBoid.getCohesionWeight());
         this.align(boidInfoArrayList, messageModelAskBoid.getAlignmentWeight());
         this.avoidOpponents(boidInfoArrayList, messageModelAskBoid.getOpponentWeight());
-        this.avoidObstacles(messageModelAskBoid.getObstacles(), messageModelAskBoid.getObstacleRadius(), messageModelAskBoid.getOpponentWeight());
         this.moveToNewPosition();
-        this.avoidBorders(messageModelAskBoid.getBordersAvoidanceFunction());
     }
 
     private void moveToNewPosition() {

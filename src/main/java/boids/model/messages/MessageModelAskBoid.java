@@ -1,7 +1,6 @@
 package boids.model.messages;
 
 import akka.actor.ActorRef;
-import boids.model.Boid;
 import boids.model.Obstacle;
 import boids.model.enums.BordersAvoidanceFunction;
 
@@ -85,5 +84,21 @@ public class MessageModelAskBoid {
 
     public BordersAvoidanceFunction getBordersAvoidanceFunction() {
         return bordersAvoidanceFunction;
+    }
+
+    public double getBordersWeight() {
+        return bordersWeight;
+    }
+
+    public double getSeparationRadius() {
+        return separationRadius;
+    }
+
+    public double getMaxSpeed() {
+        return maxSpeed;
+    }
+
+    public double getMaxForce() {
+        return maxForce;
     }
 }
