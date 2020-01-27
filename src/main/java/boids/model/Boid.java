@@ -130,7 +130,7 @@ public class Boid extends AbstractActor {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            System.out.println("boidInfoHashMap:" + boidInfoHashMap.toString());
+            //System.out.println("boidInfoHashMap:" + boidInfoHashMap.toString());
 
         }
 
@@ -228,12 +228,12 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
-//        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
-//        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
-//        for(BoidInfo info: withNulls)
-//            if(info != null)
-//                boidInfoArrayList.add(info);
+//        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
+        ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
+        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
+        for(BoidInfo info: withNulls)
+            if(info != null)
+                boidInfoArrayList.add(info);
         this.separate(boidInfoArrayList, messageModelAskBoid.getSeparationWeight());
         this.provideCohesion(boidInfoArrayList, messageModelAskBoid.getCohesionWeight());
         this.align(boidInfoArrayList, messageModelAskBoid.getAlignmentWeight());
