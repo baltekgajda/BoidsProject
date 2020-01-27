@@ -130,7 +130,6 @@ public class Boid extends AbstractActor {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            //System.out.println("boidInfoHashMap:" + boidInfoHashMap.toString());
 
         }
 
@@ -228,7 +227,6 @@ public class Boid extends AbstractActor {
     private void applyAllRules(MessageModelAskBoid messageModelAskBoid) {
 
         findNeighbours(messageModelAskBoid.getNeighbours());
-//        ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<> (boidInfoHashMap.values());
         ArrayList<BoidInfo> withNulls = new ArrayList<> (boidInfoHashMap.values());
         ArrayList<BoidInfo> boidInfoArrayList = new ArrayList<>();
         for(BoidInfo info: withNulls)

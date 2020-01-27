@@ -408,11 +408,11 @@ public class MainController {
         ActorRef ref = actorSystem.actorOf(Props.create(MainControllerActor.class));
         Timeout t = new Timeout(500000, TimeUnit.MILLISECONDS);
         Future<Object> fut = Patterns.ask(modelRef, new MessageGetDrawInfo(), t);
-        MessageReceiveDrawInfo response = null; //TODO co jak nie zdazy na czas jak timeout e
+        MessageReceiveDrawInfo response = null;
         try {
              response = (MessageReceiveDrawInfo) Await.result(fut, t.duration());
         } catch (TimeoutException | InterruptedException e) {
-            e.printStackTrace();    //TODO co zrobic jak bedzie blad ze nie zdazyl
+            e.printStackTrace();
             return;
         }
 

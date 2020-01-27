@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static akka.dispatch.Futures.sequence;
@@ -67,7 +66,6 @@ public class Model extends AbstractActor {
                     generateBoids(o.getAmountToGenerate());
                 })
                 .match(MessageAddBoid.class, o -> {
-                    System.out.println("---------------");
                     addBoid(o.getPosition(), o.getOpponent());
 
                 })
@@ -173,7 +171,6 @@ public class Model extends AbstractActor {
         }
 
         boidActorRef.tell(new MessageGetBoidInfo(), self());
-        //TODO nie mamy info o boidActor ref gdy jest losowo dodawany i potrzebujemy jego pozycji
     }
 
     //    private synchronized void addToVoxel(Boid boid) {
@@ -226,8 +223,9 @@ public class Model extends AbstractActor {
     private void removeBoids() {
         boidsCount = 0;
         boidInfos = new HashMap<>();
+        for(ActorRef ref : boidActorRefs)
+            boidsActorSystem.stop(ref);
         boidActorRefs = new ArrayList<>();
-        //TODO usun wszystkich agentow
         clearVoxels();
     }
 
@@ -253,7 +251,7 @@ public class Model extends AbstractActor {
                 BoidInfo checkedBoidInfo = boidInfos.get(actorRef);
                 BoidInfo otherBoidInfo = boidInfos.get(otherRef);
 
-                if(otherBoidInfo == null || checkedBoidInfo.equals(otherBoidInfo)) {
+                if (otherBoidInfo == null || checkedBoidInfo.equals(otherBoidInfo)) {
                     continue;
                 }
                 double dist = 0;
