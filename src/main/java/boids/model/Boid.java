@@ -256,7 +256,6 @@ public class Boid extends AbstractActor {
         double count = 0;
 
         for (BoidInfo other : neighbours) {
-
             try {
                 if (this.createBoidInfo().getDistance(other) >= separationRadius) {
                     continue;

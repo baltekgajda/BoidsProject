@@ -147,7 +147,6 @@ public class MainController {
 
     @FXML
     private void startBoids() {
-        //TODO ask na rysowanie obstacles?
         stopAnimation();
         modelRef.tell(new MessageGenerateBoids((int) boidsCountSlider.getValue()), null);
         if (pauseButton.isSelected()) {
@@ -177,7 +176,7 @@ public class MainController {
     private void stopAnimation() {
         animationTimeline.stop();
         modelRef.tell(new MessageRemoveBoidsAndObstacles(), null);
-        setBoidsCount();
+        setBoidsCount(0);
         clearCanvas(canvas.getGraphicsContext2D());
     }
 
@@ -459,7 +458,6 @@ public class MainController {
     private boolean addBoidEventHandler(MouseEvent event) {
         modelRef.tell(new MessageAddBoid(new Vector2d(event.getX(), event.getY()), enableOpponentsButton.isSelected()), null);
         if (!pauseButton.isSelected()) return false;
-        draw(canvas.getGraphicsContext2D());
         return true;
     }
 
@@ -469,13 +467,7 @@ public class MainController {
         }
 
         modelRef.tell(new MessageAddObstacle(new Vector2d(event.getX(), event.getY()), obstacleSizeSlider.getValue()), null);
-        draw(canvas.getGraphicsContext2D());
         return true;
-    }
-
-    private void setBoidsCount() {
-        //TODO dodac message get boids cont ask
-        //boidsCount.setText(Integer.toString(model.getBoidsCount()));
     }
 
     private void setBoidsCount(int count) {

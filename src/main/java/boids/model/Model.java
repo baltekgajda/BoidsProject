@@ -35,9 +35,9 @@ public class Model extends AbstractActor {
     public static double obstacleWeight = 2.5;
     private static double voxelSize = setVoxelSize();
     public static double neighbourhoodRadius = 30.0;
-    public static double separationRadius;
-    public static double maxSpeed;
-    public static double maxForce;
+    public static double separationRadius = 10.0;
+    public static double maxSpeed = 3.0;
+    public static double maxForce = 0.1;
 
     private ArrayList<Obstacle> obstacles;
     private HashMap<Pair<Integer, Integer>, LinkedList<ActorRef>> voxels;
@@ -81,9 +81,6 @@ public class Model extends AbstractActor {
                 })
                 .match(MessageAddObstacle.class, o -> {
                     addObstacle(o.getPosition(), o.getRadius());
-                })
-                .match(MessageGetBoidsCount.class, o -> {
-                    //TODO
                 })
                 .build();
     }
@@ -281,7 +278,6 @@ public class Model extends AbstractActor {
         bordersAvoidanceFunction = BordersAvoidanceFunction.TURN_BACK_ON_BORDERS;
     }
 
-    //TODO public?
     public static double getNeighbourhoodRadius() {
         return neighbourhoodRadius;
     }
