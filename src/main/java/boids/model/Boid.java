@@ -92,10 +92,6 @@ public class Boid extends AbstractActor {
 
     private Future<Object> askActorChild(ActorRef actorRef) {
         String path = actorRef.path().toString() + "/BoidInfoListener";
-//        getContext().getSystem().actorSelection(path).tell(new MessageBoidTellBoidListener(getContext().getSelf(), createBoidInfo()), getContext().getSelf());
-//        ActorPath listenpath = boidInfoListenerRef.path();
-//        ActorSelection actorSelection = getContext().getSystem().actorSelection(path);
-//        getContext().getSystem().
         return ask(getContext().getSystem().actorSelection(path), new MessageBoidAskBoidListener(), timeout);
 
     }
@@ -233,13 +229,13 @@ public class Boid extends AbstractActor {
             if(info != null)
                 boidInfoArrayList.add(info);
         this.separate(boidInfoArrayList, messageModelAskBoid.getSeparationWeight());
+        System.out.println(messageModelAskBoid.getSeparationWeight());
         this.provideCohesion(boidInfoArrayList, messageModelAskBoid.getCohesionWeight());
         this.align(boidInfoArrayList, messageModelAskBoid.getAlignmentWeight());
         this.avoidOpponents(boidInfoArrayList, messageModelAskBoid.getOpponentWeight());
         this.avoidObstacles(messageModelAskBoid.getObstacles(), messageModelAskBoid.getObstacleRadius(), messageModelAskBoid.getOpponentWeight());
         this.moveToNewPosition();
         this.avoidBorders(messageModelAskBoid.getBordersAvoidanceFunction());
-//        System.out.println(bordersAvoidanceFunction.toString());
     }
 
     private void moveToNewPosition() {

@@ -131,18 +131,17 @@ public class MainController {
 
     @FXML
     private void changeShape() {
-        //TODO dodac aska na drawBoids samo ale chyba to usunę
-//        GraphicsContext gc = canvas.getGraphicsContext2D();
-//        if (shapeChanger.isSelected()) {
-//            view.setImageView(shapeChangerImage, "circleShape.png");
-//            shape = new CircleShape();
-//            drawBoids(gc);
-//            return;
-//        }
-//
-//        view.setImageView(shapeChangerImage, "triangleShape.png");
-//        shape = new TriangleShape();
-//        drawBoids(gc);
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        if (shapeChanger.isSelected()) {
+            view.setImageView(shapeChangerImage, "circleShape.png");
+            shape = new CircleShape();
+            draw(gc);
+            return;
+        }
+
+        view.setImageView(shapeChangerImage, "triangleShape.png");
+        shape = new TriangleShape();
+        draw(gc);
     }
 
     @FXML
@@ -156,7 +155,6 @@ public class MainController {
 
         runAnimation();
     }
-
 
     private void runAnimation() {
         animationTimeline.play();
