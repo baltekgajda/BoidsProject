@@ -1,8 +1,16 @@
 package boids.controller;
 
-import boids.model.Boid;
+import akka.actor.Actor;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
+import akka.pattern.Patterns;
+import akka.util.Timeout;
+import boids.model.BoidInfo;
+import boids.model.MainControllerActor;
 import boids.model.Model;
 import boids.model.Obstacle;
+import boids.model.messages.*;
 import boids.view.View;
 import boids.view.shapes.CircleShape;
 import boids.view.shapes.Shape;
@@ -20,19 +28,27 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
+import scala.concurrent.Await;
+import scala.concurrent.Future;
 
 import javax.vecmath.Vector2d;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class MainController {
 
-    private final static long animationRate = 20;
+    private final static long animationRate = 20;  //TODO zmienic na mniesjze
     private static long animationRateStep = 10;
-    private Model model;
+    private ActorRef
+            modelRef;
     private View view;
     private Shape shape = new TriangleShape();
+    private ActorSystem actorSystem;
     @FXML
     private Canvas canvas;
     @FXML
@@ -119,21 +135,21 @@ public class MainController {
         if (shapeChanger.isSelected()) {
             view.setImageView(shapeChangerImage, "circleShape.png");
             shape = new CircleShape();
-            drawBoids(gc);
+            draw(gc);
             return;
         }
 
         view.setImageView(shapeChangerImage, "triangleShape.png");
         shape = new TriangleShape();
-        drawBoids(gc);
+        draw(gc);
     }
 
     @FXML
     private void startBoids() {
         stopAnimation();
-        model.generateBoids((int) boidsCountSlider.getValue());
+        modelRef.tell(new MessageGenerateBoids((int) boidsCountSlider.getValue()), null);
         if (pauseButton.isSelected()) {
-            drawObstacles(canvas.getGraphicsContext2D());
+            //TODO drawObstacles(canvas.getGraphicsContext2D());
             return;
         }
 
@@ -157,9 +173,8 @@ public class MainController {
     @FXML
     private void stopAnimation() {
         animationTimeline.stop();
-        model.removeBoids();
-        model.removeObstacles();
-        setBoidsCount();
+        modelRef.tell(new MessageRemoveBoidsAndObstacles(), null);
+        setBoidsCount(0);
         clearCanvas(canvas.getGraphicsContext2D());
     }
 
@@ -187,24 +202,24 @@ public class MainController {
     private void changeEdgeHandlingToFolding() {
         if (edgeFoldingButton.isSelected()) {
             edgeTurningBackButton.setSelected(false);
-            model.setAvoidBordersFunctionToFolding();
+            modelRef.tell(new MessageSetAvoidance(false, true), null);
             return;
         }
 
         edgeTurningBackButton.setSelected(true);
-        model.setAvoidBordersFunctionToTurningBack();
+        modelRef.tell(new MessageSetAvoidance(true, false), null);
     }
 
     @FXML
     private void changeEdgeHandlingToTurningBack() {
         if (edgeTurningBackButton.isSelected()) {
             edgeFoldingButton.setSelected(false);
-            model.setAvoidBordersFunctionToTurningBack();
+            modelRef.tell(new MessageSetAvoidance(true, false), null);
             return;
         }
 
         edgeFoldingButton.setSelected(true);
-        model.setAvoidBordersFunctionToFolding();
+        modelRef.tell(new MessageSetAvoidance(false, true), null);
     }
 
     @FXML
@@ -268,28 +283,29 @@ public class MainController {
             double value = neighbourhoodRadiusSlider.getValue();
             String formattedValue = df.format(value);
             neighbourhoodRadiusSliderInfo.setText(formattedValue);
-            Boid.setNeighbourhoodRadius(Double.parseDouble(formattedValue));
+
+            Model.neighbourhoodRadius = Double.parseDouble(formattedValue);
         });
 
         separationRadiusSlider.valueProperty().addListener(arg -> {
             double value = separationRadiusSlider.getValue();
             String formattedValue = df.format(value);
             separationRadiusSliderInfo.setText(formattedValue);
-            Boid.separationRadius = Double.parseDouble(formattedValue);
+            Model.separationRadius = Double.parseDouble(formattedValue);
         });
 
         maxSpeedSlider.valueProperty().addListener(arg -> {
             double value = maxSpeedSlider.getValue();
             String formattedValue = df.format(value);
             maxSpeedSliderInfo.setText(formattedValue);
-            Boid.maxSpeed = Double.parseDouble(formattedValue);
+            Model.maxSpeed = Double.parseDouble(formattedValue);
         });
 
         maxForceSlider.valueProperty().addListener(arg -> {
             double value = maxForceSlider.getValue();
             String formattedValue = df.format(value);
             maxForceSliderInfo.setText(formattedValue);
-            Boid.maxForce = Double.parseDouble(formattedValue);
+            Model.maxForce = Double.parseDouble(formattedValue);
         });
 
         opponentSlider.valueProperty().addListener(arg -> {
@@ -324,11 +340,11 @@ public class MainController {
         separationSlider.setValue(Model.separationWeight);
         cohesionSlider.setValue(Model.cohesionWeight);
         alignmentSlider.setValue(Model.alignmentWeight);
-        neighbourhoodRadiusSlider.setValue(Boid.getNeighbourhoodRadius());
-        separationRadiusSlider.setValue(Boid.separationRadius);
+        neighbourhoodRadiusSlider.setValue(Model.getNeighbourhoodRadius());
+        separationRadiusSlider.setValue(Model.separationRadius);
         shapeSizeSlider.setValue(Shape.shapeSize);
-        maxSpeedSlider.setValue(Boid.maxSpeed);
-        maxForceSlider.setValue(Boid.maxForce);
+        maxSpeedSlider.setValue(Model.maxSpeed);
+        maxForceSlider.setValue(Model.maxForce);
         opponentSlider.setValue(Model.opponentWeight);
         obstacleSizeSlider.setValue(Model.obstacleRadius);
         obstacleWeightSlider.setValue(Model.obstacleWeight);
@@ -352,10 +368,7 @@ public class MainController {
 
     private void performAnimationStep(GraphicsContext gc) {
         long startTime = System.currentTimeMillis();
-        clearCanvas(gc);
-        drawBoids(gc);
-        drawObstacles(gc);
-        model.findNewBoidsPositions();
+        draw(gc);
         long estimatedTime = System.currentTimeMillis() - startTime;
         long animationCurrentRate = (long) animationTimeline.getKeyFrames().get(1).getTime().toMillis();
         long modulus = estimatedTime % animationRateStep;
@@ -368,24 +381,45 @@ public class MainController {
         runAnimation();
     }
 
-    private void drawBoids(GraphicsContext gc) {
-        setBoidsCount();
-        for (Boid boid : model.getBoids()) {
-            shape.drawShape(gc, boid.getPosition(), boid.getAngle(), boid.getColor());
+    private void drawBoids(GraphicsContext gc, HashMap<ActorRef, BoidInfo> boidsInfos) {
+        for (BoidInfo boidInfo : boidsInfos.values()) {
+            shape.drawShape(gc, boidInfo.getPosition(), boidInfo.getAngle(), boidInfo.createColor());
             if (enableNeighbourhoodRadiusButton.isSelected()) {
-                shape.drawNeighbourhoodRadius(gc, boid.getPosition());
+                shape.drawNeighbourhoodRadius(gc, boidInfo.getPosition());
             }
             if (enableSeparationRadiusButton.isSelected()) {
-                shape.drawSeparationRadius(gc, boid.getPosition());
+                shape.drawSeparationRadius(gc, boidInfo.getPosition());
             }
         }
     }
 
-    private void drawObstacles(GraphicsContext gc) {
+    private void drawObstacles(GraphicsContext gc, ArrayList<Obstacle> obstacles) {
         CircleShape circle = new CircleShape();
-        for (Obstacle o : model.getObstacles()) {
+        for (Obstacle o : obstacles) {
             circle.drawShape(gc, o.getPosition(), Color.GAINSBORO, o.getRadius());
         }
+    }
+
+    private void draw(GraphicsContext gc) {
+        clearCanvas(gc);
+        ActorRef ref = actorSystem.actorOf(Props.create(MainControllerActor.class));
+        Timeout t = new Timeout(500000, TimeUnit.MILLISECONDS);
+        Future<Object> fut = Patterns.ask(modelRef, new MessageGetDrawInfo(), t);
+        MessageReceiveDrawInfo response = null;
+        try {
+             response = (MessageReceiveDrawInfo) Await.result(fut, t.duration());
+        } catch (TimeoutException | InterruptedException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        actorSystem.stop(ref);
+        if(response == null) {
+            return; //TODO
+        }
+        setBoidsCount(response.getBoidsCount());
+        drawBoids(gc, response.getBoidsInfo());
+        drawObstacles(gc, response.getObstacles());
     }
 
     private void clearCanvas(GraphicsContext gc) {
@@ -396,8 +430,8 @@ public class MainController {
         this.view = view;
     }
 
-    public void setModel(Model model) {
-        this.model = model;
+    public void setModel(ActorRef ref) {
+        this.modelRef = ref;
         setCanvasEventHandlers();
     }
 
@@ -420,12 +454,8 @@ public class MainController {
     }
 
     private boolean addBoidEventHandler(MouseEvent event) {
-        model.addBoid(new Vector2d(event.getX(), event.getY()), enableOpponentsButton.isSelected());
+        modelRef.tell(new MessageAddBoid(new Vector2d(event.getX(), event.getY()), enableOpponentsButton.isSelected()), null);
         if (!pauseButton.isSelected()) return false;
-
-        clearCanvas(canvas.getGraphicsContext2D());
-        drawObstacles(canvas.getGraphicsContext2D());
-        drawBoids(canvas.getGraphicsContext2D());
         return true;
     }
 
@@ -434,14 +464,15 @@ public class MainController {
             return false;
         }
 
-        model.addObstacle(new Vector2d(event.getX(), event.getY()), obstacleSizeSlider.getValue());
-        clearCanvas(canvas.getGraphicsContext2D());
-        drawObstacles(canvas.getGraphicsContext2D());
-        drawBoids(canvas.getGraphicsContext2D());
+        modelRef.tell(new MessageAddObstacle(new Vector2d(event.getX(), event.getY()), obstacleSizeSlider.getValue()), null);
         return true;
     }
 
-    private void setBoidsCount() {
-        boidsCount.setText(Integer.toString(model.getBoidsCount()));
+    private void setBoidsCount(int count) {
+        boidsCount.setText(Integer.toString(count));
+    }
+
+    public void setActorSystem(ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
     }
 }

@@ -1,6 +1,7 @@
 package boids.view.shapes;
 
 import boids.model.Boid;
+import boids.model.Model;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -39,14 +40,14 @@ public abstract class Shape {
     }
 
     public void drawNeighbourhoodRadius(GraphicsContext gc, Vector2d pos) {
-        double radius = Boid.getNeighbourhoodRadius();
+        double radius = Model.getNeighbourhoodRadius();
         double diameter = 2 * radius;
         setStroke(gc);
         gc.strokeOval(pos.getX() - radius, pos.getY() - radius, diameter, diameter);
     }
 
     public void drawSeparationRadius(GraphicsContext gc, Vector2d pos) {
-        double diameter = Boid.separationRadius;
+        double diameter = Model.separationRadius;
         double radius = diameter / 2;           //for visual purposes separation radius displayed is divided by 2 to better see separation itself
         setStroke(gc, SEPARATION_RADIUS_DASHES);
         gc.strokeOval(pos.getX() - radius, pos.getY() - radius, diameter, diameter);

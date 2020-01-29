@@ -14,8 +14,8 @@ repositories {
 
 dependencies {
     compile("javax.vecmath:vecmath:1.5.2")
-    compile("com.typesafe.akka:akka-actor-typed_2.13:2.5.25")
-    compile ("ch.qos.logback:logback-classic:1.2.3")
+    compile 'com.typesafe.akka:akka-actor_2.12:2.6.1'
+    compile("ch.qos.logback:logback-classic:1.2.3")
 }
 
 group 'com.boids'
